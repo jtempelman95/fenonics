@@ -118,12 +118,13 @@ def objfun(BGdata,gaploc1,gaploc2):
             
             
             
-        
+
+###########################################################
         
 
 def plotbands(bands, figsize = (5,4)):
     """
-    Plot the disprsion bands with bandgaps highlighted
+    Plot the disprsion bands with bandgaps highlighted on the G-X-M-G boundary
     """ 
     bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(bands)
 
@@ -135,7 +136,7 @@ def plotbands(bands, figsize = (5,4)):
     x3 = np.linspace(2,2+np.sqrt(2),np3)
     xx = np.concatenate((x1,x2,x3))
     nvec = 20
-    maxfq = 5e3
+    maxfq = highbounds.max()
     # PLOT THE DISPERSION BANDS
     for n in range(nvec):
         ev = bands[:,n]
@@ -160,7 +161,11 @@ def plotbands(bands, figsize = (5,4)):
             currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3))
     plt.legend()
     return plt
-    ###########################################################
+
+
+###########################################################
+
+###########################################################
     
     
 def plotvecs(bands, figsize = (5,4)):

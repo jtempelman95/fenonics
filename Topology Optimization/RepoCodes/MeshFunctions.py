@@ -192,6 +192,7 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
             gmsh.model.mesh.field.add("Distance", 1)
             edges = gmsh.model.getBoundary(other_surfaces, oriented=True)
             gmsh.model.mesh.field.setNumbers(1, "EdgesList", [e[1] for e in edges])
+            gmsh.model.mesh.field.setNumber(1, "Sampling", 500)
             gmsh.model.mesh.field.add("Threshold", 2)
             gmsh.model.mesh.field.setNumber(2, "IField", 1)
             gmsh.model.mesh.field.setNumber(2, "LcMin", da/refinement_level)

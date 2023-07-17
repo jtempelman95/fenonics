@@ -373,8 +373,6 @@ def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
     u_test      = TestFunction(V) 
     m_form      = Rho*dot(u_tr, u_test)*dx
 
-
-
     #################################################################
     #        Define Mass Mat  outside of  IBZ loop                  #
     #################################################################
@@ -494,7 +492,97 @@ def getMatProps(mesh,rho,c,ct):
     return E, Rho
 
 
+#################################################
+
+def solve_bands_repo(
+        HSpts = None,
+        nsol  = 60, 
+        nvec = 20, 
+        a_len = 1, 
+        c = [1e2], 
+        rho = [5e1], 
+        fspace = 'cg', 
+        mesh = None,
+        ct = None
+    ):
     
+    '''
+        Solving the band stucture
+    '''
+    
+    ##################################
+    # Get Material Properties
+    ###################################
+    E,Rho = getMatProps(mesh,rho,c,ct)
+
+    # Define the function spaces 
+    V = FunctionSpace(mesh,(fspace,1))
+    mpc, bcs    = dirichlet_and_periodic_bcs(mesh, V, ["periodic", "periodic"]) 
+    u_tr        = TrialFunction(V)
+    u_test      = TestFunction(V) 
+    m_form      = Rho*dot(u_tr, u_test)*dx
+
+    # Form the mass matrix
+    m = form(m_form)
+    diagval_B = 1e-2
+    B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
+    B.assemble()
+    assert isinstance(B, PETSc.Mat)
+    ai, aj, av = B.getValuesCSR()
+    Mcomp = scipy.sparse.csr_matrix((av+0j*av, aj, ai))
+
+    # Intializeing data
+    evals_disp  =  []
+    start       =   time.time()
+    evec_all    = []
+    print('Computing Band Structure .... ')
+    
+    #################################################################
+    # Computing dispersion across the high-symmmetry points
+    #################################################################
+    print('Computing HS points 1 to 2')
+    
+    
+    nvec_per_HS = int(round(nsol/len(HSpts)))
+    kx = HSpts[0][0]
+    ky = HSpts[0][0]
+    KX = []
+    KY = []
+    KX.append(kx)
+    KY.append(ky)
+    for k in range(len(HSpts)-1):
+        
+        # Get slope alon IBZ boundary partition
+        slope = np.array(HSpts[k+1]) - np.array(HSpts[k])
+        
+        # Compute eigenvectors/values on line
+        for j in range(nvec_per_HS):
+            kx = kx + slope[0]/nvec_per_HS  
+            ky = ky + slope[1]/nvec_per_HS  
+            KX.append(kx)
+            KY.append(ky)
+            eval, evec = solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test)
+            eval[np.isclose(eval,0)] == 0
+            eigfrq_sp_cmp = np.real(eval)**.5
+            eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp )
+            evals_disp.append(eigfrq_sp_cmp )
+            evec_all.append(evec)
+            
+    t2= round(time.time()-start,3)
+    print('Time to compute Dispersion '+ str(t2))
+
+    print('Band Compuation Complete')
+    print('-----------------')
+    print('N_dof....'  + str(ct.values.shape[0]))
+    print('N_vectors....'  + str(nvec))
+    print('N_wavenumbers....'  + str(nsol))
+    # print('Ttoal Eigenproblems....'  + str(nvec*(np1+np1+np3)))
+    print('T total....'  + str(round(t2,3))) 
+
+    return evals_disp, evec_all, mpc, KX,KY
+
+
+
 
 #%%
 """"
@@ -605,8 +693,69 @@ if __name__ == "__main__":
     ###################################
     plotter = plotmesh(mesh,fspace,ct)
     plotter.show()
-    evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
+    # evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
 
+
+    # Define the high symmetry points of the lattice
+    P1 = [0,0] # Gamma 
+    P2 = [np.pi/a_len, 0] # X
+    P3 = [np.pi/a_len, np.pi/a_len] # K
+    P4 = [0, np.pi/a_len] # K
+    HSpts = [P1,P2,P3,P4,P1]
+
+
+    # Define the numnber of eigenvectors to solve for each soltuion
+    nvec = 20
+    
+    # Define number of eigensolutions desired
+    nsol = len(HSpts)*15
+
+    # evals_disp, evec_all, mpc = solve_bands(
+        # np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
+
+    evals_disp, evec_all, mpc, KX, KY = solve_bands_repo(
+        HSpts  = HSpts,
+        nsol  = nsol, 
+        nvec = nvec, 
+        a_len = a_len, 
+        c = c, 
+        rho = rho, 
+        fspace = fspace, 
+        mesh = mesh,
+        ct = ct
+    )
+
+#%%
+if __name__ == "__main__":
+    ################################################
+    # Testing high-symmetry loop
+    ################################################
+    # Define the high symmetry points of the lattice
+    P1 = [0,0] # Gamma 
+    P2 = [np.pi/a_len, 0] # X
+    P3 = [np.pi/a_len, np.pi/a_len] # K
+    P4 = [0, np.pi/a_len] # K
+    HSpts = [P1,P2,P3,P4,P1]
+        
+    nsol= 61
+    nvec_per_HS = int(round(nsol/len(HSpts)))
+
+    kx = HSpts[0][0]
+    ky = HSpts[0][0]
+    KX = []
+    KY = []
+    KX.append(kx)
+    KY.append(ky)
+    for k in range(len(HSpts)-1):
+        slope = np.array(HSpts[k+1]) - np.array(HSpts[k])
+        for j in range(nvec_per_HS):
+            kx = kx + slope[0]/nvec_per_HS  
+            ky = ky + slope[1]/nvec_per_HS  
+            KX.append(kx)
+            KY.append(ky)
+        print(slope)
+
+#%%
 
     '''
     #////////////////////////////////////////////////////////////////////

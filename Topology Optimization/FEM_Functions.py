@@ -522,8 +522,8 @@ if __name__ == "__main__":
     dvar        =  1/2       
     r           = np.array([1,dvar,.2,.8,.3])*a_len*.95
     r           = np.array([1,np.random.rand(1)[0],.3])*a_len*.95
-    r           = np.array([[0.94912596, 0.94895456, 0.57853153, 0.26535732, 0.94616877, 0.94918783]])*a_len*.95; r= r.reshape(6,)
-    r           = np.array([[0.94929848 ,0.94984762, 0.69426451, 0.94035399 ,0.86640294, 0.95    ]])*a_len*.95; r= r.reshape(6,)
+    # r           = np.array([[0.94912596, 0.94895456, 0.57853153, 0.26535732, 0.94616877, 0.94918783]])*a_len*.95; r= r.reshape(6,)
+    # r           = np.array([[0.94929848 ,0.94984762, 0.69426451, 0.94035399 ,0.86640294, 0.95    ]])*a_len*.95; r= r.reshape(6,)
     dvec        =   r
     offset      = 0*np.pi
     design_vec  = np.concatenate( (r/a_len, [offset] ))
@@ -557,10 +557,10 @@ if __name__ == "__main__":
     # nvec      Number of eigenvectrs to solve for in each step
     # fspace    Function space to use
     ######################################################################
-    da                  =   a_len/30
+    da                  =   a_len/10
     meshalg             =   7
     refinement_level    =   6
-    refinement_dist     =   a_len/6
+    refinement_dist     =   a_len/4
     np1                 =   20
     np2                 =   20
     np3                 =   20
@@ -605,7 +605,7 @@ if __name__ == "__main__":
     ###################################
     plotter = plotmesh(mesh,fspace,ct)
     plotter.show()
-    evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh)
+    evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
 
 
     '''
@@ -867,6 +867,7 @@ if __name__ == "__main__":
     """
     Section: Post-processes eigenvectors
     """
+    # os.mkdir('./data//')
     infile =np.array(evec_all)
     np.save( 'data//testFile', infile)
     testload = np.load('data//testFile.npy')

@@ -2,6 +2,7 @@
 
 
 """
+
     
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
@@ -250,6 +251,23 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
 
 ##################################################################################################
 def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refinement_dist, isrefined = True ,cut = True):
+    """
+    Args:
+        a (_type_): chareceteristic length of the unit cell
+        da (_type_): Minimum mesh spacing
+        r (_type_): Vector of radii for design vector
+        Nquads (_type_): Number of quadrants to rotate design vecotr about
+        offset (_type_): Offset angle to design vector
+        meshalg (_type_): _description_
+        refinement_level (_type_): _description_
+        refinement_dist (_type_): _description_
+        isrefined (bool, optional): _description_. Defaults to True.
+        cut (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        _type_: _description_
+    """
+  
     gmsh.initialize()
     gmsh.clear()
     # gmsh.option.setNumber("Geometry.Tolerance", 1e-6/4.48401)
@@ -283,6 +301,8 @@ def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,ref
     tagsurf = 100
     sft= 0
     inclusion_idx = 0
+    xspl_all = []
+    yspl_all = []
     for ii in np.array([     .25,    .75]):
         for jj in np.array([ .25,    .75]):
             xspl = []
@@ -294,6 +314,8 @@ def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,ref
                     yc = jj*a  + (r[inclusion_idx][k])  * np.sin( 2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads + offset + sft*np.pi/8 )
                     yspl.append(yc)
                     xspl.append(xc)
+                    xspl_all.append(xc)
+                    yspl_all.append(yc)
             sft += 1
             splinepoints = [ gmsh.model.occ.addPoint(xspl[v], yspl[v],0 ) for v in range(len(xspl))]
             splinepoints.append(splinepoints[0])
@@ -431,17 +453,39 @@ def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,ref
     gmsh.model.mesh.generate(mesh_dim) 
         
     print('Gmsh model created: Multi-spline class')
-    return gmsh.model
+    return gmsh.model, xspl_all, yspl_all
 
 
 
-    # Test
+def GetSpline(gmsh):   
+    '''
+    # Get spline geometry from gmsh mesh
+    '''
+    node_interior = gmsh.model.mesh.getNodesForPhysicalGroup(1,5)[1]
+    x_int       = node_interior[0::3]
+    y_int       = node_interior[1::3]
+    x_int       = np.concatenate([x_int,[x_int[0]]])
+    y_int       = np.concatenate([y_int,[y_int[0]]])
+    xi          = x_int - a_len/2
+    yi          = y_int - a_len/2
+    lxi         = len(xi)
+    lxp         = len(xpt)
+    xptnd       = np.array(xpt)
+    yptnd       = np.array(ypt)
+    lxp         = len(xptnd)
+    xsv         = np.empty(xi.shape)
+    SplineDat   = np.hstack( (xi.reshape(lxi,1), yi.reshape(lxi,1) ))  
+    SplinePtDat = np.hstack( (xptnd.reshape(lxp,1), yptnd.reshape(lxp,1) ))  
+    return SplinePtDat, SplineDat
+
+
+#%%
+# Test
 """
-Test the funtoin
+Test the functions out here
 """
 
 if __name__ == '__main__':
-
 
     # ################################################## #
     # Imports for finite element modeling                #
@@ -481,9 +525,6 @@ if __name__ == '__main__':
     from dolfinx.io         import XDMFFile
     from dolfinx.io.gmshio  import model_to_mesh
 
-
-
-
     # =================================
     # Get latin hypercube sampling
     # =================================
@@ -508,12 +549,9 @@ if __name__ == '__main__':
 
     a_len       =   .1
     dvar        =   1/2       
-    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.95
-    r           =   np.array([1,np.random.rand(1)[0],.3])*a_len*.95
-    r           =   sample[sidx,:]*a_len*.9
-    # r           = np.hstack((r,np.flip(r)))
-    # r           = np.hstack((r,r[0]))
-    # r           = np.array([1,.5,.4,.5])*a_len*.95
+    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
+    # r           =   np.array([1,np.random.rand(1)[0],.3])*a_len*.95
+    # r           =   sample[sidx,:]*a_len*.9
     dvec        =   r
     offset      =   0*np.pi
     design_vec  =   np.concatenate( (r/a_len, [offset] ))
@@ -526,17 +564,6 @@ if __name__ == '__main__':
 
 
     ######################################################################
-    #                  Phsyical  Params                                  #
-    ######################################################################
-    #   c                   Speed of sound in media
-    #   rho                 Desnity
-    ######################################################################
-    c           = [1500,5100]   # if solid inclusion (mutlple materail model)
-    rho         = [1e3,7e3]     # if solid inclusion (mutlple materail model) 
-    c           = [30]          # if void inclusion  (if iscut)
-    rho         = [1.2]         # if void inclusion  (if iscut)
-
-    ######################################################################
     #                      Mesh Inputs                                   #
     ######################################################################
     #   refinement_level    Choose ratio of how dense mesh gets around refinement field 
@@ -547,27 +574,22 @@ if __name__ == '__main__':
     ######################################################################
     da                  =   a_len/13
     meshalg             =   6
-    refinement_level    =   4
+    refinement_level    =   6
     refinement_dist     =   a_len/10
-
-    ######################################################################
-    #                        Solver inputs                               #
-    ######################################################################
-    # npi       Number of points to loop through i-th cut of IBZ
-    # nvec      Number of eigenvectrs to solve for in each step
-    # fspace    Function space to use
-    ######################################################################
-    np1     = 20
-    np2     = 20
-    np3     = 20
-    nvec    = 20
-    fspace  = 'CG'
 
     ######################################################################
     #                  Generate a mesh with one inclsuion                #
     ######################################################################
     meshalg                 = 6
-    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len ,da,r,Nquads,offset,meshalg,
+    
+    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
+    # gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len ,da,r,Nquads,offset,meshalg,
+    #                                                 refinement_level,refinement_dist,
+    #                                                 isrefined = True, cut = True)
+    
+    
+    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
+    gmsh.model, xpt, ypt =   get_mesh_SquareMultiSpline(a_len ,da,np.array([r,r,r,r]),Nquads,offset,meshalg,
                                                     refinement_level,refinement_dist,
                                                     isrefined = True, cut = True)
 
@@ -581,11 +603,10 @@ if __name__ == '__main__':
         xdmf.write_mesh(mesh)
         xdmf.write_meshtags(ct)
 
-
     #################################################################
     #              Plot the mesh                                    #
     #################################################################
-    V = FunctionSpace(mesh,(fspace,1))
+    V = FunctionSpace(mesh,('CG',1))
     v = Function(V)
     plotter = pyvista.Plotter()
     grid = pyvista.UnstructuredGrid(*create_vtk_mesh(mesh, mesh.topology.dim))
@@ -599,10 +620,8 @@ if __name__ == '__main__':
     plotter.add_title('CELLS:'+str(ct.values.shape[0])+ '  | NODES:'+str(v.vector[:].shape[0]),color = 'r')
     plotter.show()
 
-
-
     # ###########################################################
-    # # Get spline fit from the mesh 
+    # Recover the spline curve used to make the mesh
     # ###########################################################
     node_interior = gmsh.model.mesh.getNodesForPhysicalGroup(1,5)[1]
     x_int = node_interior[0::3]
@@ -612,12 +631,14 @@ if __name__ == '__main__':
     # plt.plot(x_int,y_int,'-')
     xi = x_int - a_len/2
     yi = y_int - a_len/2
-
     plt.plot(np.array(xpt)- a_len/2, np.array(ypt)- a_len/2,'.')
-    plt.plot(xi,yi)
+    plt.plot(xi,yi,color='r')
     plt.grid()
+    plt.axis('image')
     plt.show()
 
+
+#%%
     '''
     # Testing sensitivity to mesh options
     '''
@@ -638,7 +659,6 @@ if __name__ == '__main__':
     y_int = node_interior[1::3]
     x_int = np.concatenate([x_int,[x_int[0]]])
     y_int = np.concatenate([y_int,[y_int[0]]])
-    # plt.plot(x_int,y_int,'-')
     xi = x_int - a_len/2
     yi = y_int - a_len/2
     Xi = xi

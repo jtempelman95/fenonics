@@ -868,9 +868,9 @@ plt.show()
 """
 Section: Post-processes eigenvectors
 """
-infile =np.array(evec_all)
-np.save( 'data//testFile', infile)
-testload = np.load('data//testFile.npy')
+# infile =np.array(evec_all)
+# np.save( 'data//testFile', infile)
+testload = np.array(evec_all) #np.load('data//testFile.npy')
 plotter = pyvista.Plotter(shape=(5,4) , window_size=(1000,1000))
 ###########################################################
 # Post-processing the eigenvectors

@@ -250,6 +250,23 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
 
 ##################################################################################################
 def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refinement_dist, isrefined = True ,cut = True):
+    """
+    Args:
+        a (_type_): chareceteristic length of the unit cell
+        da (_type_): Minimum mesh spacing
+        r (_type_): Vector of radii for design vector
+        Nquads (_type_): Number of quadrants to rotate design vecotr about
+        offset (_type_): Offset angle to design vector
+        meshalg (_type_): _description_
+        refinement_level (_type_): _description_
+        refinement_dist (_type_): _description_
+        isrefined (bool, optional): _description_. Defaults to True.
+        cut (bool, optional): _description_. Defaults to True.
+
+    Returns:
+        _type_: _description_
+    """
+  
     gmsh.initialize()
     gmsh.clear()
     # gmsh.option.setNumber("Geometry.Tolerance", 1e-6/4.48401)
@@ -279,7 +296,6 @@ def get_mesh_SquareMultiSpline(a,da,r,Nquads,offset,meshalg,refinement_level,ref
     
 
     # Add the spline curve
-
     tagsurf = 100
     sft= 0
     inclusion_idx = 0

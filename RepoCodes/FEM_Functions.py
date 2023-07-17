@@ -327,6 +327,8 @@ def solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test):
     ===================================
     '''
     K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
+    kx = fem.Constant(mesh,PETSc.ScalarType(kx))
+    ky  = fem.Constant(mesh,PETSc.ScalarType(ky))
     a_form_re = E**2*(inner(grad(u_tr), grad(u_test)) + u_tr*u_test*(kx**2+ky**2))*dx
     a_form_im = E**2*(u_tr*inner(grad(u_test),K) - u_test*inner(grad(u_tr),K))*dx
     a_re = form(a_form_re)

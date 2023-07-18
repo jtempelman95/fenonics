@@ -14,3 +14,19 @@ These points are copied across quadrants of the unit cell and a periodic spline 
 
 The complex Bloch eigenproblem is constructed by inserting a Bloch ansatz into the variational form and then utilizeing the dolfinx-mpc module to apply stard periodic boundary conditions.
 
+As of now, the code only supports the wave equation,
+
+$$
+\rho\ddot{u} = T\nabla^2u
+$$
+
+with Bloch-periodic BCs
+
+$$ 
+\begin{align} 
+	&u(0,y) = u(a,y)e^{i k_xa} \ \ \text{on} \ 0<y<a\\
+	&u(x,0) = u(x,a)e^{i k_ya} \ \ \text{on} \ 0<x<a
+\end{align}
+$$
+
+## Details on solution formulation

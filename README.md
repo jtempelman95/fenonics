@@ -22,11 +22,7 @@ $$
 
 with Bloch-periodic BCs
 
-$$ 
-\begin{align} 
-	&u(0,y) = u(a,y)e^{i k_xa} \ \ \text{on} \ 0<y<a\\
-	&u(x,0) = u(x,a)e^{i k_ya} \ \ \text{on} \ 0<x<a
-\end{align}
+$$ \begin{align} &u(0,y) = u(a,y)e^{i k_xa} \ \ \text{on} \ 0<y<a\\ &u(x,0) = u(x,a)e^{i k_ya} \ \ \text{on} \ 0<x<a\end{align}
 $$
 
 ## Details on solution formulation

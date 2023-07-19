@@ -315,8 +315,6 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
     mpc.finalize()
     return mpc, bcs
 
-
-
 #################################################################
 #    Function to Assemble and solve system using Scipy          #
 #################################################################
@@ -359,7 +357,7 @@ def solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test):
 def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
     '''
     ===================================
-        Solving the band stucture
+        Solving the band stucture on G-X-M-G
     ===================================
     '''
     
@@ -450,6 +448,7 @@ def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
     print('T total....'  + str(round(t2,3))) 
 
     return evals_disp, evec_all, mpc
+
 
 
 #################################################################
@@ -708,9 +707,9 @@ if __name__ == "__main__":
 
     # Define the numnber of eigenvectors to solve for each soltuion
     nvec = 20
-    
+
     # Define number of eigensolutions desired
-    nsol = len(HSpts)*15
+    nsol = len(HSpts)*12
 
     # evals_disp, evec_all, mpc = solve_bands(
         # np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
@@ -759,6 +758,7 @@ if __name__ == "__main__":
 
 #%%
 
+if __name__ == '__main__':
     '''
     #////////////////////////////////////////////////////////////////////
     #

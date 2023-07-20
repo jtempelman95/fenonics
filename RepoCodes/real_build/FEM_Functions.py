@@ -54,6 +54,7 @@
 import numpy as np
 import time
 import os
+import warnings
 
 # Plotting
 import matplotlib.pyplot as plt
@@ -77,7 +78,7 @@ from petsc4py.PETSc import ScalarType
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 from slepc4py import SLEPc
-from ufl import dot, dx, grad, inner, TestFunction, TrialFunction
+from ufl import dot, dx, grad, inner, Argument, TestFunction, TrialFunction
 
 
 # Set up pyvista
@@ -90,15 +91,13 @@ pyvista.start_xvfb()
 #
 # ======================================================================================
 
-#################################################################
-#       Function for matrix conversion                          #
-#################################################################
+
 def petsc_to_numpy(A):
-    '''
-    ===================================
-        Convert to np (not recomended)
-    ===================================
-    '''
+    '''Convert PETSc matrix to dense numpy matrix.'''
+
+    warnings.warn("This function is inefficient and will be removed in the future.",
+                  category=DeprecationWarning)
+
     sz = A.getSize()
     A_ = np.zeros(sz, dtype=ScalarType)
     for i in range(sz[0]):
@@ -106,21 +105,16 @@ def petsc_to_numpy(A):
         A_[i, row[0]] = row[1]
     return A_
 
+
 def complex_formatter(x):
+    '''Convert complex number to string with exponential notation.'''
+
     return "{0:-10.3e}{1:+10.3e}j".format(np.real(x), np.imag(x))
 
 
+def get_EPS(A: PETSc.Mat, B: PETSc.Mat, nvec: int):
+    '''Create and set up a SLEPc eigensolver.'''
 
-#################################################################
-#       Function for solving eigenproblem with SLEPc            #
-#################################################################
-
-def get_EPS(A, B, nvec):
-    '''
-    ===================================
-        Solving evals with slepc (real)
-    ===================================
-    '''
     EPS = SLEPc.EPS()
     EPS.create(comm=MPI.COMM_WORLD)
     EPS.setOperators(A, B)
@@ -137,63 +131,67 @@ def get_EPS(A, B, nvec):
     EPS.setFromOptions()
     return EPS
 
-#################################################################
-#       Function for solving eigenproblem with scipy            #
-#################################################################
-def scipysolve(A, B, nval):
-    '''
-    ===================================
-        Solving evals with scipy (real)
-    ===================================
-    '''
-    K = petsc_to_numpy(A)       # Not recomended #
-    M = petsc_to_numpy(B)       # Not recomended #
+
+def scipysolve(A: PETSc.Mat, B: PETSc.Mat, nval: int):
+    '''Solve eigenvalue problem using scipy sparse eigensolver.'''
+
+    K = petsc_to_numpy(A)
+    M = petsc_to_numpy(B)
     K = sparse.csr_array(K)
     M = sparse.csr_array(M)
-    eval, evec = eigsh(K, k = nval, M=M, sigma = 1.0)
+
+    eval, evec = eigsh(K, M=M, k=nval, sigma=1.0)
     return eval, evec
 
 #################################################################
 #   Function for solving complex eigenproblem with scipy        #
 #################################################################
-def scipysolve_complex(A_re, A_im, B, nval):
-    '''
-    ===================================
-        Solving evals with scipy (complex)
-    ===================================
-    '''
-    A_re_np = petsc_to_numpy(A_re)       # Not recomended #
-    A_im_np = petsc_to_numpy(A_im)       # Not recomended #
-    Kcomp    = A_re_np+1j*A_im_np
-    eval, evec = eigsh(Kcomp, k = 24, M=B, sigma = 1.0)
-    return eval, evec
+def scipysolve_complex(A_re: PETSc.Mat, A_im: PETSc.Mat, B: PETSc.Mat, nval: int):
+    '''Solve complex eigenvalue problem using scipy sparse eigensolver.
     
+    In particular, solve the generalized eigenvalue problem
+    
+        A * x_i = lambda_i * B * x_i
+    
+    where `A = A_re + 1j * A_im` is a complex-valued matrix.
+    '''
+
+    A_re_np = petsc_to_numpy(A_re)
+    A_im_np = petsc_to_numpy(A_im)
+    Kcomp = A_re_np + 1j * A_im_np
+
+    eval, evec = eigsh(Kcomp, M=B, k=24, sigma=1.0)
+    return eval, evec
+
     
 
 #################################################################
 #   Function for multi point constraint (periodic BC)           #
 #################################################################
 def dirichlet_and_periodic_bcs(
-    domain,
-    functionspace,
+    domain: dolfinx.mesh.Mesh,
+    functionspace: fem.FunctionSpace,
     bc_type: list[str] = ["dirichlet", "periodic"],
-    dbc_value=0
+    dbc_value: ScalarType = 0,
 ):
-    """Create periodic and/or dirichlet boundary conditions.
+    '''Create periodic and/or Dirichlet boundary conditions for a square domain.
 
+    Parameters
     ----------
-    bc_type
-        First item describes b.c. on {x=0} and {x=1}
-        Second item describes b.c. on {y=0} and {y=1}
-    """
-    
+    domain - mesh of a square unit cell
+    functionspace - function space on which to apply the bcs
+    bc_type - types of bc to apply on the left/right and top/bottom boundaries,
+        respectively. Allowable values are "dirichlet" or "periodic"
+    dbc_value - value of the Dirichlet bc
+    '''
+
     fdim = domain.topology.dim - 1
-    bcs             = []
-    pbc_directions  = []
-    pbc_slave_tags  = []
-    pbc_is_slave    = []
-    pbc_is_master   = []
-    pbc_meshtags    = []
+    bcs = []
+    pbc_directions = []
+    pbc_slave_tags = []
+    pbc_is_slave = []
+    pbc_is_master = []
+    pbc_meshtags = []
     pbc_slave_to_master_maps = []
 
     def generate_pbc_slave_to_master_map(i):
@@ -284,11 +282,6 @@ def dirichlet_and_periodic_bcs(
             out_x[0][~idx] = np.nan
             out_x[1][~idx] = np.nan
             return out_x
-        # mpc.create_periodic_constraint_topological(functionspace, pbc_meshtags[1],
-        #                                             pbc_slave_tags[1],
-        #                                             pbc_slave_to_master_map,
-        #                                             bcs)
-        # print('MPC DEFINED (c)')
         
         if functionspace.num_sub_spaces == 0:
             mpc.create_periodic_constraint_topological(functionspace, pbc_meshtags[1],
@@ -310,15 +303,26 @@ def dirichlet_and_periodic_bcs(
     mpc.finalize()
     return mpc, bcs
 
-#################################################################
-#    Function to assemble and solve system using Scipy          #
-#################################################################
-def solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test):
+
+def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
+             mpc: dolfinx_mpc.MultiPointConstraint, bcs: list[dolfinx.fem.DirichletBC],
+             nvec: int, mesh: dolfinx.mesh.Mesh, u_tr: Argument, u_test: Argument):
+    '''Assemble and solve dispersion at a single wavevector point.
+    
+    Parameters
+    ----------
+    kx - x-component of the wavevector
+    ky - y-component of the wavevector
+    E - modulus
+    Mcomp - mass matrix
+    mpc - multi-point constraint holding the periodic bcs
+    bcs - Dirichlet bcs
+    nvec - number of eigenvalue/eigenvector pairs to compute
+    mesh - mesh of the unit cell
+    u_tr - trial function
+    u_test - test function
     '''
-    ===================================
-        Solving the FEM problem
-    ===================================
-    '''
+
     K = fem.Constant(mesh, ScalarType((kx, ky)))
     kx = fem.Constant(mesh, ScalarType(kx))
     ky  = fem.Constant(mesh, ScalarType(ky))
@@ -346,9 +350,7 @@ def solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test):
     eval, evec= eigsh(Kcomp, k = nvec, M=Mcomp, sigma = 1.0)
     return eval, evec 
 
-#################################################################
-#               SOLVING THE DISPERSION PROBLEM                  #
-#################################################################
+
 def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
     '''Solve the band stucture on Γ-X-M-Γ.'''
     
@@ -433,11 +435,9 @@ def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
     return evals_disp, evec_all, mpc
 
 
+def plotmesh(mesh: dolfinx.mesh.Mesh, fspace: str, ct: dolfinx.mesh.CellTags):
+    '''Plot a mesh.'''
 
-#################################################################
-#              Plot the mesh                                    #
-#################################################################
-def plotmesh(mesh, fspace, ct):
     V = FunctionSpace(mesh, (fspace, 1))
     v = Function(V)
     plotter = pyvista.Plotter()
@@ -453,10 +453,11 @@ def plotmesh(mesh, fspace, ct):
     plotter.add_title(f'CELLS: {ct.values.shape[0]}  | NODES: {v.vector[:].shape[0]}')
     return plotter
 
-#################################################################
-#       Assign material properties to the domain                #
-#################################################################
-def getMatProps(mesh, rho, c, ct):
+
+def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
+                ct: dolfinx.mesh.CellTags):
+    '''Assign material properties to a domain.'''
+
     if len(rho) > 1:
         # E.g., if more than one physical group assigned.
         # Assign material propoerties to each physical group.
@@ -477,27 +478,11 @@ def getMatProps(mesh, rho, c, ct):
     return E, Rho
 
 
-#################################################
+def solve_bands_repo(HSpts=None, nsol=60, nvec=20, a_len=1, c=[1e2], rho=[5e1],
+                     fspace='cg', mesh=None, ct=None):
+    '''Solve band stucture, interpolating between high-symmetry points.'''
 
-def solve_bands_repo(
-        HSpts=None,
-        nsol=60, 
-        nvec=20, 
-        a_len=1, 
-        c=[1e2], 
-        rho=[5e1], 
-        fspace='cg', 
-        mesh=None,
-        ct=None,
-    ):
-    
-    '''
-        Solving the band stucture
-    '''
-    
-    ##################################
     # Get Material Properties
-    ###################################
     E, Rho = getMatProps(mesh, rho, c, ct)
 
     # Define the function spaces 
@@ -521,12 +506,10 @@ def solve_bands_repo(
     start       = time.time()
     evec_all    = []
     print('Computing band structure...')
-    
-    #################################################################
+
     # Computing dispersion across the high-symmmetry points
-    #################################################################
     print('Computing HS points 1 to 2')
-    
+
     nvec_per_HS = int(round(nsol / len(HSpts)))
     kx = HSpts[0][0]
     ky = HSpts[0][0]
@@ -535,10 +518,9 @@ def solve_bands_repo(
     KX.append(kx)
     KY.append(ky)
     for k in range(len(HSpts) - 1):
-        
         # Get slope along IBZ boundary partition
         slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
-        
+
         # Compute eigenvectors/values on line
         for j in range(nvec_per_HS):
             kx = kx + slope[0] / nvec_per_HS  
@@ -564,8 +546,6 @@ def solve_bands_repo(
     print('T total...{0:.3f}'.format(t2)) 
 
     return evals_disp, evec_all, mpc, KX, KY
-
-
 
 
 #%%

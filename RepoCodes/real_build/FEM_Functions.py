@@ -10,7 +10,7 @@
                 
                 
     Josh Tempelman
-    Universrity of Illinois
+    University of Illinois
     jrt7@illinois.edu
     
     Originated      MARCH 10, 2023
@@ -20,9 +20,9 @@
     
     
     About:
-        This program formulates a square unit cell mesh with an imbedded
+        This program formulates a square unit cell mesh with an embedded
         geometry. The dolfinx-fenicsx routine and dolfinx-mpc solve the
-        resulintg eigenvalue problems over the G-M-X-G boundaries of the
+        resulting eigenvalue problems over the Γ-X-M-Γ boundaries of the
         IBZ. Post processing identifies band gaps
         
         
@@ -49,10 +49,9 @@
 #%%
 
 # ################################################## #
-# Genearal imports                                   #
+# General imports                                    #
 # ################################################## #
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import os
 
@@ -98,16 +97,14 @@ from scipy.sparse.linalg import eigsh
 from scipy import sparse
 
 
-""""
 # ==============================================================================================
 #
 #                               FINITE ELEMENT FUNCTIONS
 #
 # ==============================================================================================
-"""
 
 #################################################################
-#       Function for matrix convesion                          #
+#       Function for matrix conversion                          #
 #################################################################
 def petsc_to_numpy(A):
     '''
@@ -130,6 +127,7 @@ def complex_formatter(x):
 #################################################################
 #       Function for solving eigenproblem with SLEPc            #
 #################################################################
+
 def get_EPS(A, B, nvec):
     '''
     ===================================
@@ -186,7 +184,7 @@ def scipysolve_complex(A_re, A_im, B, nval):
     
 
 #################################################################
-#   Function for multi point constraint (perioidc BC)           #
+#   Function for multi point constraint (periodic BC)           #
 #################################################################
 def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[str] = ["dirichlet", "periodic"], dbc_value = 0):
     """
@@ -208,7 +206,7 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
 
     def generate_pbc_slave_to_master_map(i):
         def pbc_slave_to_master_map(x):
-            out_x = x.copy() # was ist x.copy()?
+            out_x = x.copy()
             out_x[i] = x[i] - domain.geometry.x.max()
             return out_x
         return pbc_slave_to_master_map
@@ -247,7 +245,7 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
                                         np.full(len(facets), pbc_slave_tags[-1], dtype=np.int32)))
 
     # Create MultiPointConstraint object
-    mpc =dolfinx_mpc.MultiPointConstraint(functionspace)
+    mpc = dolfinx_mpc.MultiPointConstraint(functionspace)
     
     N_pbc = len(pbc_directions)
     for i in range(N_pbc):
@@ -316,12 +314,12 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
     return mpc, bcs
 
 #################################################################
-#    Function to Assemble and solve system using Scipy          #
+#    Function to assemble and solve system using Scipy          #
 #################################################################
-def solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test):
+def solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test):
     '''
     ===================================
-        Solving the FEM proble
+        Solving the FEM problem
     ===================================
     '''
     K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
@@ -345,7 +343,7 @@ def solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test):
     assert isinstance(A_im, PETSc.Mat)
     _,_, av_im = A_im.getValuesCSR()
     ############################################
-    # Gettning solutinons
+    # Getting solutions
     ############################################
     Kcomp = scipy.sparse.csr_matrix((av+1j*av_im, aj, ai))
     eval, evec= eigsh(Kcomp, k = nvec, M=Mcomp, sigma = 1.0)
@@ -354,20 +352,15 @@ def solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test):
 #################################################################
 #               SOLVING THE DISPERSION PROBLEM                  #
 #################################################################
-def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
-    '''
-    ===================================
-        Solving the band stucture on G-X-M-G
-    ===================================
-    '''
+def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
+    '''Solve the band stucture on Γ-X-M-Γ.'''
     
     ##################################
     # Get Material Properties
     ###################################
-    E,Rho = getMatProps(mesh,rho,c,ct)
+    E, Rho = getMatProps(mesh,rho,c,ct)
 
-
-    V = FunctionSpace(mesh,(fspace,1))
+    V = FunctionSpace(mesh, (fspace, 1))
     mpc, bcs    = dirichlet_and_periodic_bcs(mesh, V, ["periodic", "periodic"]) 
     u_tr        = TrialFunction(V)
     u_test      = TestFunction(V) 
@@ -379,27 +372,25 @@ def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
     m = form(m_form)
     diagval_B = 1e-2
     B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
-    M_np = petsc_to_numpy(B)
     B.assemble()
     assert isinstance(B, PETSc.Mat)
     ai, aj, av = B.getValuesCSR()
-    Mcomp = scipy.sparse.csr_matrix((av+0j*av, aj, ai))
+    Mcomp = scipy.sparse.csr_matrix((av + 0j * av, aj, ai))
     
     ky          = 0
-    tsolve      = []
-    evals_disp  =  []
+    evals_disp  = []
     maxk        = np.pi/a_len
-    start       =   time.time()
+    start       = time.time()
     evec_all    = []
-    print('Computing Band Structure .... ')
+    print('Computing Band Structure... ')
 
     #################################################################
-    #            Computing K to M                                   #
+    #            Computing Γ to Χ                                   #
     #################################################################
-    print('Computing Gamma to  X')
-    for kx in np.linspace(0.01,maxk,np1):
-        K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
-        eval, evec = solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test)
+    print('Computing Γ to X')
+    for kx in np.linspace(0.01, maxk, np1):
+        K = fem.Constant(mesh, PETSc.ScalarType((kx, ky)))
+        eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
         eval[np.isclose(eval,0)] == 0
         eigfrq_sp_cmp = np.real(eval)**.5
         eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp )
@@ -407,45 +398,42 @@ def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
         evec_all.append(evec)
         
     #################################################################
-    #            Computing K to M                                   #
+    #            Computing Χ to M                                   #
     #################################################################
-    print('Computing X to  M')
+    print('Computing X to M')
     kx = maxk
-    for ky in np.linspace(0.01,maxk,np2):
-        K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
-        # start=time.time()
-        eval, evec = solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test)
-        eval[np.isclose(eval,0)] == 0
-        eigfrq_sp_cmp = np.real(eval)**.5
-        eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp )
-        evals_disp.append(eigfrq_sp_cmp )
+    for ky in np.linspace(0.01, maxk, np2):
+        K = fem.Constant(mesh, PETSc.ScalarType((kx, ky)))
+        eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
+        eval[np.isclose(eval, 0)] == 0
+        eigfrq_sp_cmp = np.real(eval) ** 0.5
+        eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
+        evals_disp.append(eigfrq_sp_cmp)
         evec_all.append(evec)
 
     #################################################################
-    #            Computing M To Gamma                               #
+    #            Computing M To Γ                                   #
     #################################################################
-    print('Computing M to Gamma')
-    for kx in np.linspace(maxk,0.01,np3):
+    print('Computing M to Γ')
+    for kx in np.linspace(maxk, 0.01, np3):
         ky = kx
-        K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
-        # start=time.time()
-        eval, evec = solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test)
-        eval[np.isclose(eval,0)] == 0
-        eigfrq_sp_cmp = np.real(eval)**.5
+        eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
+        eval[np.isclose(eval, 0)] == 0
+        eigfrq_sp_cmp = np.real(eval) ** 0.5
         eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
         evals_disp.append(eigfrq_sp_cmp )
         evec_all.append(evec)
         # print(np.round(time.time()-start,3))
-    t2= round(time.time()-start,3)
-    print('Time to compute Dispersion '+ str(t2))
+    t2 = round(time.time() - start, 3)
+    print('Time to compute dispersion '+ str(t2))
 
-    print('Band Compuation Complete')
+    print('Band computation complete')
     print('-----------------')
     print('N_dof....'  + str(ct.values.shape[0]))
     print('N_vectors....'  + str(nvec))
-    print('N_wavenumbers....'  + str(np1+np1+np3))
+    print('N_wavenumbers....'  + str(np1 + np1 + np3))
     # print('Ttoal Eigenproblems....'  + str(nvec*(np1+np1+np3)))
-    print('T total....'  + str(round(t2,3))) 
+    print('T total....'  + str(round(t2, 3))) 
 
     return evals_disp, evec_all, mpc
 
@@ -454,25 +442,25 @@ def solve_bands(np1, np2, np3,nvec, a_len, c, rho, fspace, mesh, ct):
 #################################################################
 #              Plot the mesh                                    #
 #################################################################
-def plotmesh(mesh,fspace,ct):
-    V = FunctionSpace(mesh,(fspace,1))
+def plotmesh(mesh, fspace, ct):
+    V = FunctionSpace(mesh, (fspace, 1))
     v = Function(V)
     plotter = pyvista.Plotter()
     grid    = pyvista.UnstructuredGrid(*create_vtk_mesh(mesh, mesh.topology.dim))
     num_local_cells = mesh.topology.index_map(mesh.topology.dim).size_local
-    grid.cell_data["Marker"] = 1-ct.values[ct.indices<num_local_cells]
+    grid.cell_data["Marker"] = 1 - ct.values[ct.indices < num_local_cells]
     grid.set_active_scalars("Marker")
-    actor = plotter.add_mesh(grid, show_edges=True, line_width= 3, edge_color= 'k', style='wireframe')
+    actor = plotter.add_mesh(grid, show_edges=True, line_width=3, edge_color='k', style='wireframe')
     plotter.set_background('white', top='white')
     plotter.view_xy()
     plotter.camera.tight(padding=0.1)
-    plotter.add_title('CELLS:'+str(ct.values.shape[0])+ '  | NODES:'+str(v.vector[:].shape[0]))
+    plotter.add_title(f'CELLS: {ct.values.shape[0]}  | NODES: {v.vector[:].shape[0]}')
     return plotter
 
 #################################################################
 #       Assign material properties to the domain                #
 #################################################################
-def getMatProps(mesh,rho,c,ct):
+def getMatProps(mesh, rho, c, ct):
     if len(rho) > 1:
         # E.g., if more than one physical group assigned.
         # Assign material propoerties to each physical group.
@@ -484,8 +472,8 @@ def getMatProps(mesh,rho,c,ct):
         disk2_cells     = ct.find(2)
         Rho.x.array[disk1_cells]    = np.full_like(disk1_cells, rho[0], dtype=ScalarType)
         Rho.x.array[disk2_cells]    = np.full_like(disk2_cells, rho[1], dtype=ScalarType)
-        E.x.array[disk1_cells]      = np.full_like(disk1_cells,  c[0], dtype=ScalarType)
-        E.x.array[disk2_cells]      = np.full_like(disk2_cells,  c[1], dtype=ScalarType)
+        E.x.array[disk1_cells]      = np.full_like(disk1_cells, c[0], dtype=ScalarType)
+        E.x.array[disk2_cells]      = np.full_like(disk2_cells, c[1], dtype=ScalarType)
 
     else:
         Rho = rho[0]
@@ -514,14 +502,14 @@ def solve_bands_repo(
     ##################################
     # Get Material Properties
     ###################################
-    E,Rho = getMatProps(mesh,rho,c,ct)
+    E, Rho = getMatProps(mesh, rho, c, ct)
 
     # Define the function spaces 
     V = FunctionSpace(mesh,(fspace,1))
     mpc, bcs    = dirichlet_and_periodic_bcs(mesh, V, ["periodic", "periodic"]) 
     u_tr        = TrialFunction(V)
     u_test      = TestFunction(V) 
-    m_form      = Rho*dot(u_tr, u_test)*dx
+    m_form      = Rho * dot(u_tr, u_test) * dx
 
     # Form the mass matrix
     m = form(m_form)
@@ -530,69 +518,66 @@ def solve_bands_repo(
     B.assemble()
     assert isinstance(B, PETSc.Mat)
     ai, aj, av = B.getValuesCSR()
-    Mcomp = scipy.sparse.csr_matrix((av+0j*av, aj, ai))
+    Mcomp = scipy.sparse.csr_matrix((av + 0j*av, aj, ai))
 
-    # Intializeing data
-    evals_disp  =  []
-    start       =   time.time()
+    # Initializing data
+    evals_disp  = []
+    start       = time.time()
     evec_all    = []
-    print('Computing Band Structure .... ')
+    print('Computing band structure...')
     
     #################################################################
     # Computing dispersion across the high-symmmetry points
     #################################################################
     print('Computing HS points 1 to 2')
     
-    
-    nvec_per_HS = int(round(nsol/len(HSpts)))
+    nvec_per_HS = int(round(nsol / len(HSpts)))
     kx = HSpts[0][0]
     ky = HSpts[0][0]
     KX = []
     KY = []
     KX.append(kx)
     KY.append(ky)
-    for k in range(len(HSpts)-1):
+    for k in range(len(HSpts) - 1):
         
-        # Get slope alon IBZ boundary partition
-        slope = np.array(HSpts[k+1]) - np.array(HSpts[k])
+        # Get slope along IBZ boundary partition
+        slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
         
         # Compute eigenvectors/values on line
         for j in range(nvec_per_HS):
-            kx = kx + slope[0]/nvec_per_HS  
-            ky = ky + slope[1]/nvec_per_HS  
+            kx = kx + slope[0] / nvec_per_HS  
+            ky = ky + slope[1] / nvec_per_HS  
             KX.append(kx)
             KY.append(ky)
-            eval, evec = solvesys(kx,ky,E,Mcomp,mpc,bcs,nvec, mesh, u_tr, u_test)
-            eval[np.isclose(eval,0)] == 0
-            eigfrq_sp_cmp = np.real(eval)**.5
-            eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp )
-            evals_disp.append(eigfrq_sp_cmp )
+            eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
+            eval[np.isclose(eval, 0)] == 0
+            eigfrq_sp_cmp = np.real(eval) ** 0.5
+            eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
+            evals_disp.append(eigfrq_sp_cmp)
             evec_all.append(evec)
-            
-    t2= round(time.time()-start,3)
-    print('Time to compute Dispersion '+ str(t2))
 
-    print('Band Compuation Complete')
+    t2 = time.time() - start
+    print('Time to compute dispersion: {0:.3f}s'.format(t2))
+
+    print('Band computation complete')
     print('-----------------')
-    print('N_dof....'  + str(ct.values.shape[0]))
-    print('N_vectors....'  + str(nvec))
-    print('N_wavenumbers....'  + str(nsol))
+    print('N_dof...{0:d}'.format(ct.values.shape[0]))
+    print('N_vectors...{0:d}'.format(nvec))
+    print('N_wavenumbers...{0:d}'.format(nsol))
     # print('Ttoal Eigenproblems....'  + str(nvec*(np1+np1+np3)))
-    print('T total....'  + str(round(t2,3))) 
+    print('T total...{0:.3f}'.format(t2)) 
 
-    return evals_disp, evec_all, mpc, KX,KY
+    return evals_disp, evec_all, mpc, KX, KY
 
 
 
 
 #%%
-""""
 # ==============================================================================================
 #
 #                               COMPUTING THE BAND STRUCTURE
 #
 # ==============================================================================================
-"""
 
 if __name__ == "__main__":
 
@@ -607,32 +592,37 @@ if __name__ == "__main__":
     #   iscut               Choose if inclusion is void or an added domain
     #   dvar                Design variable to probe 
     ######################################################################
-    a_len       = .1
-    dvar        =  1/2       
-    r           = np.array([1,dvar,.2,.8,.3])*a_len*.95
-    r           = np.array([1,np.random.rand(1)[0],.3])*a_len*.95
+    a_len       = 0.1
+    dvar        = 1 / 2       
+    r           = np.array([1, dvar, 0.2, 0.8, 0.3]) * a_len * 0.95
+    r           = np.array([1, np.random.rand(1)[0], 0.3]) * a_len * 0.95
     # r           = np.array([[0.94912596, 0.94895456, 0.57853153, 0.26535732, 0.94616877, 0.94918783]])*a_len*.95; r= r.reshape(6,)
     # r           = np.array([[0.94929848 ,0.94984762, 0.69426451, 0.94035399 ,0.86640294, 0.95    ]])*a_len*.95; r= r.reshape(6,)
-    dvec        =   r
-    offset      = 0*np.pi
-    design_vec  = np.concatenate( (r/a_len, [offset] ))
+    dvec        = r
+    offset      = 0 * np.pi
+    design_vec  = np.concatenate((r / a_len, [offset]))
     Nquads      = 4
 
     # Set file name to save figures based on input vector
     name = 'dvec'
     for k in range(len(design_vec)):
-        name += '_' + str(int(100*np.round(design_vec[k],2)))
+        name += '_' + str(int(100 * np.round(design_vec[k], 2)))
 
     ######################################################################
-    #                  Phsyical  Params                                  #
+    #                  Physical Params                                   #
     ######################################################################
     #   c                   Speed of sound in media
-    #   rho                 Desnity
+    #   rho                 Density
     ######################################################################
-    c           = [1500,5100]   # if solid inclusion (mutlple materail model)
-    rho         = [1e3,7e3]     # if solid inclusion (mutlple materail model) 
-    c           = [30]          # if void inclusion  (if iscut)
-    rho         = [1.2]         # if void inclusion  (if iscut)
+    multiple_material = False
+    if multiple_material:
+        # Solid inclusion
+        c           = [1500,5100]
+        rho         = [1e3,7e3]
+    else:
+        # Void inclusion
+        c           = [30]
+        rho         = [1.2]
 
     ######################################################################
     #                       FEM Inputs                                 #
@@ -641,29 +631,31 @@ if __name__ == "__main__":
     #   refinement_dist     Maximum distance of refinement field from refined edges
     #   isrefined           Choose whether or not to refine mesh around internal edges
     #   meshalg             Meshing algorithm for gmsh to use
-    #   da                  Nominal Mesh Density
-    # npi       Number of points to loop through i-th cut of IBZ
-    # nvec      Number of eigenvectrs to solve for in each step
-    # fspace    Function space to use
+    #   mesh_dens           Nominal mesh density
+    #   da                  Nominal mesh size
+    #   npi                 Number of points to loop through i-th cut of IBZ
+    #   nvec                Number of eigenvectrs to solve for in each step
+    #   fspace              Function space to use
     ######################################################################
-    da                  =   a_len/10
-    meshalg             =   7
-    refinement_level    =   6
-    refinement_dist     =   a_len/4
-    np1                 =   20
-    np2                 =   20
-    np3                 =   20
-    nvec                =   20
-    fspace              =   'CG'
+    mesh_dens           = 10
+    da                  = a_len / mesh_dens
+    meshalg             = 7
+    refinement_level    = 6
+    refinement_dist     = a_len / 4
+    np1                 = 20
+    np2                 = 20
+    np3                 = 20
+    nvec                = 20
+    fspace              = 'CG'
 
 
     ######################################################################
-    #                  Generate a mesh with one inclsuion                #
+    #                  Generate a mesh with one inclusion                #
     ######################################################################
     meshalg                 = 6
-    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len ,da,r,Nquads,offset,meshalg,
-                                                    refinement_level,refinement_dist,
-                                                    isrefined = True, cut = True)
+    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len, da, r, Nquads, offset,meshalg,
+                                                    refinement_level, refinement_dist,
+                                                    isrefined=True, cut=True)
 
     #################################################################
     #            Import to dolfinx and save as xdmf                 #
@@ -679,7 +671,7 @@ if __name__ == "__main__":
     savefigs  = False
     savedata  = False
     figpath   = 'figures//SE413_Proposal4//OptExample'
-    datapath  = 'data/SE413_OptimizationData_nquad' + str(Nquads) + '_nDvec_' + str(len(r))  + '_nomMesh_'+ str(a_len/da)+ '_refinement_' + str(refinement_level)
+    datapath  = 'data/SE413_OptimizationData_nquad{Nquads:d}_nDvec_{len_r:d}_nomMesh_{nomMesh:d}_refinement_{refine:d}'.format(Nquads=Nquads, len_r=len(r), nomMesh=mesh_dens, refine=refinement_level)
     isExist = os.path.exists(figpath)
     if savefigs:
         if not isExist:
@@ -692,38 +684,38 @@ if __name__ == "__main__":
     ##################################
     #   Solve the problem
     ###################################
-    plotter = plotmesh(mesh,fspace,ct)
+    plotter = plotmesh(mesh, fspace, ct)
     plotter.show()
     # evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
 
 
     # Define the high symmetry points of the lattice
-    P1 = [0,0] # Gamma 
-    P2 = [np.pi/a_len, 0] # X
-    P3 = [np.pi/a_len, np.pi/a_len] # K
-    P4 = [0, np.pi/a_len] # K
-    HSpts = [P1,P2,P3,P4,P1]
+    P1 = [0, 0] # Γ
+    P2 = [np.pi / a_len, 0] # X
+    P3 = [np.pi / a_len, np.pi / a_len] # M
+    P4 = [0, np.pi / a_len] # Y
+    HSpts = [P1, P2, P3, P4, P1]
 
 
-    # Define the numnber of eigenvectors to solve for each soltuion
+    # Define the number of eigenvectors to solve for each solution
     nvec = 20
 
     # Define number of eigensolutions desired
-    nsol = len(HSpts)*12
+    nsol = len(HSpts) * 12
 
     # evals_disp, evec_all, mpc = solve_bands(
-        # np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
+        # np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct)
 
     evals_disp, evec_all, mpc, KX, KY = solve_bands_repo(
-        HSpts  = HSpts,
-        nsol  = nsol, 
-        nvec = nvec, 
-        a_len = a_len, 
-        c = c, 
-        rho = rho, 
-        fspace = fspace, 
-        mesh = mesh,
-        ct = ct
+        HSpts=HSpts,
+        nsol=nsol, 
+        nvec=nvec, 
+        a_len=a_len, 
+        c=c, 
+        rho=rho, 
+        fspace=fspace, 
+        mesh=mesh,
+        ct=ct,
     )
 
 #%%
@@ -732,14 +724,14 @@ if __name__ == "__main__":
     # Testing high-symmetry loop
     ################################################
     # Define the high symmetry points of the lattice
-    P1 = [0,0] # Gamma 
-    P2 = [np.pi/a_len, 0] # X
-    P3 = [np.pi/a_len, np.pi/a_len] # K
-    P4 = [0, np.pi/a_len] # K
-    HSpts = [P1,P2,P3,P4,P1]
+    P1 = [0, 0] # Γ 
+    P2 = [np.pi / a_len, 0] # X
+    P3 = [np.pi / a_len, np.pi / a_len] # M
+    P4 = [0, np.pi / a_len] # Y
+    HSpts = [P1, P2, P3, P4, P1]
         
-    nsol= 61
-    nvec_per_HS = int(round(nsol/len(HSpts)))
+    nsol = 61
+    nvec_per_HS = int(round(nsol / len(HSpts)))
 
     kx = HSpts[0][0]
     ky = HSpts[0][0]
@@ -747,11 +739,11 @@ if __name__ == "__main__":
     KY = []
     KX.append(kx)
     KY.append(ky)
-    for k in range(len(HSpts)-1):
-        slope = np.array(HSpts[k+1]) - np.array(HSpts[k])
+    for k in range(len(HSpts) - 1):
+        slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
         for j in range(nvec_per_HS):
-            kx = kx + slope[0]/nvec_per_HS  
-            ky = ky + slope[1]/nvec_per_HS  
+            kx = kx + slope[0] / nvec_per_HS  
+            ky = ky + slope[1] / nvec_per_HS  
             KX.append(kx)
             KY.append(ky)
         print(slope)
@@ -767,44 +759,44 @@ if __name__ == '__main__':
     #////////////////////////////////////////////////////////////////////
     '''
 
-    nK = np1+np2+np3
+    nK = np1 + np2 + np3
     #################################################################
-    #               Idenitfy the band gaps                          #
+    #               Identify the band gaps                          #
     #################################################################
     eigfqs = np.array(evals_disp)
-    ef_vec = eigfqs.reshape((1,nvec*nK))
+    ef_vec = eigfqs.reshape((1, nvec * nK))
     evals_all = np.sort(ef_vec).T
     deval = np.diff(evals_all.T).T
     args =  np.flip(np.argsort(deval.T)).T
-    lowlim  = []
-    uplim   = []
-    bgs     = []
+    lowlim = []
+    uplim = []
+    bgs = []
 
     # Finding the boundaries of the pass bands
-    lowb      = []
-    uppb      = []
+    lowb = []
+    uppb = []
     for k in range(nvec):
         lowb.append(np.min(eigfqs.T[k]))
         uppb.append(np.max(eigfqs.T[k]))
 
     # Finding the band gaps
     for k in range(nvec):
-        LowerLim =  np.max(eigfqs[:,k])
-        if k < nvec-1:
-            UpperLim =  np.min(eigfqs[:,k+1])
+        LowerLim = np.max(eigfqs[:, k])
+        if k < nvec - 1:
+            UpperLim = np.min(eigfqs[:, k + 1])
         else:
-            UpperLim =  np.min(eigfqs[:,k])
+            UpperLim = np.min(eigfqs[:, k])
 
 
         # Check if these limits fall in a pass band
         overlap = False
         for j in range(nvec):
-            if LowerLim > lowb[j] and LowerLim <uppb[j]:
+            if LowerLim > lowb[j] and LowerLim < uppb[j]:
                 overlap = True            
-            if UpperLim > lowb[j] and UpperLim <uppb[j]:
+            if UpperLim > lowb[j] and UpperLim < uppb[j]:
                 overlap = True
         
-        if overlap == False:
+        if not overlap:
             print('isbg')
             lowlim.append(LowerLim)
             uplim.append(UpperLim)
@@ -823,24 +815,22 @@ if __name__ == '__main__':
     ###########################################################
     # Get spline fit from the mesh 
     ###########################################################
-    node_interior = gmsh.model.mesh.getNodesForPhysicalGroup(1,5)[1]
+    node_interior = gmsh.model.mesh.getNodesForPhysicalGroup(1, 5)[1]
     x_int = node_interior[0::3]
     y_int = node_interior[1::3]
-    x_int = np.concatenate([x_int,[x_int[0]]])
-    y_int = np.concatenate([y_int,[y_int[0]]])
+    x_int = np.concatenate([x_int, [x_int[0]]])
+    y_int = np.concatenate([y_int, [y_int[0]]])
     # plt.plot(x_int,y_int,'-')
-    xi = x_int - a_len/2
-    yi = y_int - a_len/2
+    xi = x_int - a_len / 2
+    yi = y_int - a_len / 2
 
 
-
-    '''
     #////////////////////////////////////////////////////////////////////
     #
     # SECTION 5: PLOT THE OUTPUT OF THE PROBLEM
     #
     #////////////////////////////////////////////////////////////////////
-    '''
+
 
     # import patch as matplotlib.patches
     # import matplotlib.patches as patch
@@ -850,111 +840,111 @@ if __name__ == '__main__':
     # design vector normalization for plotting
 
     # Define x-y coords for plotting design vector
-    x  = np.array(xpt) - a_len/2
-    y  = np.array(ypt) - a_len/2
+    x  = np.array(xpt) - a_len / 2
+    y  = np.array(ypt) - a_len / 2
 
     #################################################################
     #            FIG 1: Plotting the dispersion                     #
     #################################################################
-    x1 = np.linspace(0,1-1/np1,np1)
-    x2 = np.linspace(1,2-1/np1,np2)
-    x3 = np.linspace(2,2+np.sqrt(2),np3)
-    xx = np.concatenate((x1,x2,x3))
+    x1 = np.linspace(0, 1 - 1 / np1, np1)
+    x2 = np.linspace(1, 2 - 1 / np1, np2)
+    x3 = np.linspace(2, 2 + np.sqrt(2), np3)
+    xx = np.concatenate((x1, x2, x3))
     # PLOT THE DISPERSION BANDS
     for n in range(nvec):
         ev = []
         for k in range(len(evals_disp)):
             ev.append(np.real(evals_disp[k][n]))
         if n == 0:
-            plt.plot( xx,(ev),'b.-',markersize = 3, label = 'Bands')
+            plt.plot(xx, ev, 'b.-', markersize=3, label='Bands')
         else:
-            plt.plot( xx,(ev),'b.-',markersize = 3)
+            plt.plot(xx, ev, 'b.-', markersize=3)
     plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.array([0,1,2,2+np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],fontsize=18)
-    plt.xlabel(r'Wave Vector ',fontsize=18)
-    plt.ylabel('$\omega$ [rad/s]',fontsize=18)
-    plt.title('Dispersion Diagram',fontsize = 18)
-    plt.xlim((0,np.max(xx)))
-    plt.ylim((0,np.max(maxfq)))
+    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=18)
+    plt.xlabel('Wave Vector', fontsize=18)
+    plt.ylabel('$\omega$ [rad/s]', fontsize=18)
+    plt.title('Dispersion Diagram', fontsize=18)
+    plt.xlim((0, np.max(xx)))
+    plt.ylim((0, np.max(maxfq)))
     currentAxis = plt.gca()
     for j in range(len(gapwidths)):
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6,label='bangap'))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
     plt.legend()
     if savefigs:
-        plt.savefig(figpath + '//BandGapDgm' + name + '.pdf' , bbox_inches = 'tight')
-        plt.savefig('figures//jpeg//BandGapDgm' + name + '.jpeg' , bbox_inches = 'tight') 
+        plt.savefig(figpath + '//BandGapDgm' + name + '.pdf' , bbox_inches='tight')
+        plt.savefig('figures//jpeg//BandGapDgm' + name + '.jpeg' , bbox_inches='tight') 
     plt.show()
     ###########################################################
 
 
     ###########################################################
-    # FIG 2: Plot dispersion with design vec and void tplgy  #
+    # FIG 2: Plot dispersion with design vec and void tplgy   #
     ###########################################################
-    fig = plt.figure(figsize=(10,6) )
-    ax1 = fig.add_subplot(1,2,2)
+    fig = plt.figure(figsize=(10, 6))
+    ax1 = fig.add_subplot(1, 2, 2)
     for n in range(nvec):
         ev = []
         for k in range(len(evals_disp)):
             ev.append(np.real(evals_disp[k][n]))
         if n == 0:
-            ax1.plot( xx,(ev),'b.-',markersize = 3, label = 'Bands')
+            ax1.plot(xx, ev, 'b.-', markersize=3, label='Bands')
         else:
-            ax1.plot( xx,(ev),'b.-',markersize = 3)
+            ax1.plot(xx, ev, 'b.-', markersize=3)
     ax1.grid(color='gray', linestyle='-', linewidth=0.2)
-    ax1.set_xticks(np.array([0,1,2,2+np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],fontsize=18)
-    ax1.set_xlabel(r'Wave Vector ',fontsize=18)
-    ax1.set_ylabel('$\omega$ [rad/s]',fontsize=18)
-    ax1.set_title('Dispersion Diagram',fontsize = 18)
-    ax1.set_xlim((0,np.max(xx)))
-    ax1.set_ylim((0,np.max(maxfq)))
+    ax1.set_xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=18)
+    ax1.set_xlabel('Wave Vector', fontsize=18)
+    ax1.set_ylabel('$\omega$ [rad/s]', fontsize=18)
+    ax1.set_title('Dispersion Diagram', fontsize=18)
+    ax1.set_xlim((0, np.max(xx)))
+    ax1.set_ylim((0, np.max(maxfq)))
     for j in range(len(gapwidths)):
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            ax1.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6,label='bangap'))
+            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            ax1.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6))
+            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
     ax1.legend()
     # =============================
     ax2 = fig.add_subplot(221)
-    ax2.add_patch( Rectangle( (-a_len/2,-a_len/2),a_len,a_len, facecolor="w" ,ec='k', alpha =1,label='bangap'))
-    ax2.plot(x[0:int(len(xpt)/Nquads)], y[0:int(len(xpt)/Nquads)], ' .r')
-    ax2.plot(x[int(len(xpt)/Nquads):-1], y[int(len(xpt)/Nquads):-1], '.', color = 'gray')
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='k', alpha=1, label='bandgap'))
+    ax2.plot(x[0:int(len(xpt) / Nquads)], y[0:int(len(xpt) / Nquads)], '.r')
+    ax2.plot(x[int(len(xpt)/Nquads):-1], y[int(len(xpt) / Nquads):-1], '.', color='gray')
     for j in range(len(xpt)):
         # plt.plot([0,x[r]], [0,y[r]],'k')
-        if j<int(len(x)/Nquads):
-            ax2.plot([0,x[j]], [0,y[j]],'k')
+        if j < int(len(x) / Nquads):
+            ax2.plot([0, x[j]], [0, y[j]], 'k')
         else:
-            ax2.plot([0,x[j]], [0,y[j]],'--', color = 'gray', linewidth = 1)
-    ax2.set_title('Design Vector',fontsize = 18)
-    ax2.set_xlabel('$x$ [m]',fontsize = 18)
-    ax2.set_ylabel('$y$ [m]',fontsize = 18)
+            ax2.plot([0, x[j]], [0, y[j]], '--', color='gray', linewidth=1)
+    ax2.set_title('Design Vector', fontsize=18)
+    ax2.set_xlabel('$x$ [m]', fontsize=18)
+    ax2.set_ylabel('$y$ [m]', fontsize=18)
     ax2.set_aspect('equal', 'box')
-    ax2.set_xlim((-a_len/1.5,a_len/1.5))
-    ax2.set_ylim((-a_len/1.5,a_len/1.5))
+    ax2.set_xlim((-a_len / 1.5, a_len / 1.5))
+    ax2.set_ylim((-a_len / 1.5, a_len / 1.5))
     # =============================
     ax2 = fig.add_subplot(223)
-    ax2.add_patch( Rectangle( (-a_len/2,-a_len/2),a_len,a_len, facecolor="w" ,ec='w', alpha =.2,label='bangap'))
-    ax2.plot(x, y, '.', color = 'gray')
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='w', alpha=0.2, label='bandgap'))
+    ax2.plot(x, y, '.', color='gray')
     for j in range(len(xpt)):
-        ax2.plot([0,x[j]], [0,y[j]],'--', color = 'gray', linewidth = 1)
+        ax2.plot([0, x[j]], [0, y[j]], '--', color='gray', linewidth=1)
     ax2.plot(xi, yi, '-b')
-    ax2.set_title('BSpline Cut',fontsize = 18)
-    ax2.set_xlabel('$x$ [m]',fontsize = 18)
-    ax2.set_ylabel('$y$ [m]',fontsize = 18)
+    ax2.set_title('BSpline Cut', fontsize=18)
+    ax2.set_xlabel('$x$ [m]', fontsize=18)
+    ax2.set_ylabel('$y$ [m]', fontsize=18)
     ax2.set_aspect('equal', 'box')
-    ax2.set_xlim((-a_len/1.5,a_len/1.5))
-    ax2.set_ylim((-a_len/1.5,a_len/1.5))
+    ax2.set_xlim((-a_len / 1.5, a_len / 1.5))
+    ax2.set_ylim((-a_len / 1.5, a_len / 1.5))
     # =============================
     fig.tight_layout(pad=1.4)
     if savefigs:
-        plt.savefig(figpath + '//BandGapDgm_withDesign_subpl' +name + '.pdf' , bbox_inches = 'tight')
-        plt.savefig('figures//jpeg//BandGapDgm_withDesign_subpl' +name + '.jpeg' , bbox_inches = 'tight') 
+        plt.savefig(figpath + '//BandGapDgm_withDesign_subpl' + name + '.pdf' , bbox_inches='tight')
+        plt.savefig('figures//jpeg//BandGapDgm_withDesign_subpl' + name + '.jpeg' , bbox_inches='tight') 
     plt.show()
     ###########################################################
 
@@ -962,43 +952,43 @@ if __name__ == '__main__':
     ###########################################################
     # FIG 3: Plotting the dispersion and void overlayed      #
     ###########################################################
-    plt.figure(figsize=(4/1.3,6/1.3))
+    plt.figure(figsize=(4 / 1.3, 6 / 1.3))
     for n in range(nvec):
         ev = []
         for k in range(len(evals_disp)):
             ev.append(np.real(evals_disp[k][n]))
         if n == 0:
-            plt.plot( xx,(ev),'b-',markersize = 3, label = 'Bands')
+            plt.plot(xx, ev, 'b-', markersize=3, label='Bands')
         else:
-            plt.plot( xx,(ev),'b-',markersize = 3)
+            plt.plot(xx, ev, 'b-', markersize=3)
     plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.array([0,1,2,2+np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],fontsize=12)
-    plt.xlabel(r'Wave Vector ',fontsize=12)
-    plt.ylabel('$\omega$ [rad/s]',fontsize=12)
-    plt.title('Dispersion Diagram',fontsize = 12)
-    plt.xlim((0,np.max(xx)))
-    plt.ylim((0,np.max(maxfq)))
+    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=12)
+    plt.xlabel('Wave Vector ', fontsize=12)
+    plt.ylabel('$\omega$ [rad/s]', fontsize=12)
+    plt.title('Dispersion Diagram', fontsize=12)
+    plt.xlim((0, np.max(xx)))
+    plt.ylim((0, np.max(maxfq)))
     currentAxis = plt.gca()
     for j in range(len(gapwidths)):
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6,label='bangap'))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="k" ,ec='none', alpha =.6))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
     plt.legend()
     # plt.title( (' $ x  = $' + str(np.round(design_vec,2))  ), fontsize = 12)
     # =============================
     ax = plt.gca()
-    ax2 = ax.inset_axes([0.5, .58, 0.5, 0.5])
-    ax2.add_patch( Rectangle( (-a_len/2,-a_len/2),a_len,a_len, facecolor="w" ,ec='k', alpha =.75,label='bangap'))
-    ax2.plot(x[0:int(len(xpt)/Nquads)], y[0:int(len(xpt)/Nquads)], ' .r')
-    ax2.plot(x[int(len(xpt)/Nquads):-1], y[int(len(xpt)/Nquads):-1], '.', color = 'gray')
+    ax2 = ax.inset_axes([0.5, 0.58, 0.5, 0.5])
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='k', alpha=0.75, label='bandgap'))
+    ax2.plot(x[0:int(len(xpt) / Nquads)], y[0:int(len(xpt) / Nquads)], '.r')
+    ax2.plot(x[int(len(xpt) / Nquads):-1], y[int(len(xpt) / Nquads):-1], '.', color='gray')
     for r in range(len(x)):
-        if r<int(len(x)/Nquads):
-            ax2.plot([0,x[r]], [0,y[r]],'-', color = 'black', linewidth = 1)
+        if r < int(len(x) / Nquads):
+            ax2.plot([0, x[r]], [0, y[r]], '-', color='black', linewidth=1)
         else:
-            ax2.plot([0,x[r]], [0,y[r]],'--', color = 'gray', linewidth = 1)
+            ax2.plot([0, x[r]], [0, y[r]], '--', color='gray', linewidth=1)
     ax2.set_aspect('equal', 'box')
     ax2.set_axis_off()
     # =============================
@@ -1007,30 +997,30 @@ if __name__ == '__main__':
     ax2.set_axis_off()
     # plt.savefig('BandGapDgm_withDesign_inset.pdf', bbox_inches = 'tight') 
     if savefigs:
-        plt.savefig(figpath + '//BandGapDgm_withDesign_inset_grid' +name + '.pdf' , bbox_inches = 'tight')
-        plt.savefig('figures//jpeg//BandGapDgm_withDesign_inset_grid' +name + '.jpeg' , bbox_inches = 'tight') 
+        plt.savefig(figpath + '//BandGapDgm_withDesign_inset_grid' + name + '.pdf' , bbox_inches='tight')
+        plt.savefig('figures//jpeg//BandGapDgm_withDesign_inset_grid' + name + '.jpeg' , bbox_inches='tight') 
     plt.show()
     ###########################################################
 
 
     #%%
 
-    """
-    Section: Post-processes eigenvectors
-    """
+    # Section: Post-processes eigenvectors
+
     # os.mkdir('./data//')
-    infile =np.array(evec_all)
-    np.save( 'data//testFile', infile)
+    infile = np.array(evec_all)
+    np.save('data//testFile', infile)
     testload = np.load('data//testFile.npy')
-    plotter = pyvista.Plotter(shape=(5,4) , window_size=(1000,1000))
+    plotter = pyvista.Plotter(shape=(5, 4) , window_size=(1000, 1000))
     ###########################################################
     # Post-processing the eigenvectors
     ###########################################################
     euse = 0
     for i in range(5):
         for j in range(4):
-            plotter.subplot(i,j)
-            et = testload[euse,:,3]; euse += 1
+            plotter.subplot(i, j)
+            et = testload[euse, :, 3]
+            euse += 1
             vr = Function(V)
             vi = Function(V)
             vr.vector[:] = np.real(et)
@@ -1039,7 +1029,6 @@ if __name__ == '__main__':
             mpc.backsubstitution(vr.vector)
             vi.x.scatter_forward()
             mpc.backsubstitution(vi.vector)
-
 
             ###########################################################
             # Plotting eigenvectors with pyvista
@@ -1050,31 +1039,29 @@ if __name__ == '__main__':
             cells, types, x = plot.create_vtk_mesh(V)
             grid = pyvista.UnstructuredGrid(cells, types, x)
             grid.point_data["u"] = u.x.array
-            u.vector.setArray(vr.vector[:]/np.max(vr.vector[:])*np.sign(vr.vector[10]))
+            u.vector.setArray(vr.vector[:] / np.max(vr.vector[:]) * np.sign(vr.vector[10]))
             edges = grid.extract_all_edges()
             warped = grid.warp_by_scalar("u", factor=0)
-            plotter.add_mesh(warped, show_edges=False, show_scalar_bar=True, scalars="u",cmap=mycmap)
+            plotter.add_mesh(warped, show_edges=False, show_scalar_bar=True, scalars="u", cmap=mycmap)
             # plotter.add_mesh(grid, style = 'wireframe', line_width = .5, color = 'black')
             plotter.view_xy()
-            plotter.add_text(str(euse), position=[100,80], color='cyan')
+            plotter.add_text(str(euse), position=[100, 80], color='cyan')
             plotter.camera.tight(padding=0.1)
 
     plotter.show()
 
     #%%
 
-        
-
     import pandas as pd
 
-    dinf = {"gapwidth":gapwidths, "upperLims":highbounds}
+    dinf = {"gapwidth": gapwidths, "upperLims": highbounds}
     # dinf = {dinf, "upperLims":highbounds}
     dframe = pd.DataFrame(dinf)
     dframe.to_csv('data//testcsv.csv')
 
-    dinf = {"Evals":evals_disp}
+    dinf = {"Evals": evals_disp}
     dframe = pd.DataFrame(dinf)
 
 
     #%%
-    BG_normalized   = gapwidths/(.5*lowbounds  + .5*highbounds)
+    BG_normalized   = gapwidths / (0.5 * lowbounds + 0.5 * highbounds)

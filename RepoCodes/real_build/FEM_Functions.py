@@ -61,7 +61,6 @@ import os
 import matplotlib.pyplot as plt
 from dolfinx.io import gmshio
 import pyvista
-pyvista.start_xvfb()
 
 # ################################################## #
 # Imports for the meshing                            #
@@ -79,7 +78,7 @@ from mpi4py import MPI
 import dolfinx_mpc
 import dolfinx
 from dolfinx.fem    import Function, FunctionSpace, VectorFunctionSpace
-from dolfinx.mesh   import create_unit_square 
+from dolfinx.mesh   import create_unit_square, locate_entities_boundary
 from dolfinx.mesh   import create_rectangle
 from dolfinx.fem    import form
 from dolfinx.fem.petsc import assemble_matrix
@@ -95,6 +94,10 @@ from typing     import List
 import scipy.sparse
 from scipy.sparse.linalg import eigsh
 from scipy import sparse
+
+
+# Set up pyvista
+pyvista.start_xvfb()
 
 
 # ==============================================================================================
@@ -153,7 +156,7 @@ def get_EPS(A, B, nvec):
 #################################################################
 #       Function for solving eigenproblem with scipy            #
 #################################################################
-def scipysolve(A,B, nval):
+def scipysolve(A, B, nval):
     '''
     ===================================
         Solving evals with scipy (real)
@@ -178,7 +181,7 @@ def scipysolve_complex(A_re, A_im, B, nval):
     A_re_np = petsc_to_numpy(A_re)       # Not recomended #
     A_im_np = petsc_to_numpy(A_im)       # Not recomended #
     Kcomp    = A_re_np+1j*A_im_np
-    eval, evec = eigsh(Kcomp, k = 24, M=Mcomp, sigma = 1.0)
+    eval, evec = eigsh(Kcomp, k = 24, M=B, sigma = 1.0)
     return eval, evec
     
     
@@ -186,11 +189,16 @@ def scipysolve_complex(A_re, A_im, B, nval):
 #################################################################
 #   Function for multi point constraint (periodic BC)           #
 #################################################################
-def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[str] = ["dirichlet", "periodic"], dbc_value = 0):
-    """
-    Function to set either dirichlet or periodic boundary conditions
+def dirichlet_and_periodic_bcs(
+    domain,
+    functionspace,
+    bc_type: List[str] = ["dirichlet", "periodic"],
+    dbc_value=0
+):
+    """Create periodic and/or dirichlet boundary conditions.
+
     ----------
-    boundary_condition
+    bc_type
         First item describes b.c. on {x=0} and {x=1}
         Second item describes b.c. on {y=0} and {y=1}
     """
@@ -218,14 +226,17 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
         return lambda x: np.isclose(x[i], domain.geometry.x.min())
 
     # Parse boundary conditions
-    for i, bc_type in enumerate(boundary_condition):
+    for i, bc_type in enumerate(bc_type):
         
         if bc_type == "dirichlet":
             u_bc = fem.Function(functionspace)
-            u_bc.x.array[:] = dbc_value # value of dirichlet bc needs to be passed into this function!
+            u_bc.x.array[:] = dbc_value
 
             def dirichletboundary(x):
-                return np.logical_or(np.isclose(x[i], domain.geometry.x.min()), np.isclose(x[i], domain.geometry.x.max()))
+                return np.logical_or(np.isclose(x[i],
+                                     domain.geometry.x.min()),
+                                     np.isclose(x[i],
+                                     domain.geometry.x.max()))
             facets = locate_entities_boundary(domain, fdim, dirichletboundary)
             topological_dofs = fem.locate_dofs_topological(functionspace, fdim, facets)
             bcs.append(fem.dirichletbc(u_bc, topological_dofs))
@@ -237,12 +248,16 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
             pbc_is_master.append(generate_pbc_is_master(i))
             pbc_slave_to_master_maps.append(generate_pbc_slave_to_master_map(i))
 
-            facets = dolfinx.mesh.locate_entities_boundary(domain, fdim, pbc_is_slave[-1])
+            facets = locate_entities_boundary(domain, fdim, pbc_is_slave[-1])
             arg_sort = np.argsort(facets)
-            pbc_meshtags.append(dolfinx.mesh.meshtags(domain,
-                                        fdim,
-                                        facets[arg_sort],
-                                        np.full(len(facets), pbc_slave_tags[-1], dtype=np.int32)))
+            pbc_meshtags.append(
+                dolfinx.mesh.meshtags(
+                    domain,
+                    fdim,
+                    facets[arg_sort],
+                    np.full(len(facets), pbc_slave_tags[-1], dtype=np.int32)
+                )
+            )
 
     # Create MultiPointConstraint object
     mpc = dolfinx_mpc.MultiPointConstraint(functionspace)
@@ -258,12 +273,6 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
         else:
             pbc_slave_to_master_map = pbc_slave_to_master_maps[i]
 
-        # mpc.create_periodic_constraint_topological(functionspace, pbc_meshtags[i],
-        #                                             pbc_slave_tags[i],
-        #                                             pbc_slave_to_master_map,
-        #                                             bcs)
-        
-        # print('MPC DEFINED (a)')
         if functionspace.num_sub_spaces == 0:
             mpc.create_periodic_constraint_topological(functionspace, pbc_meshtags[i],
                                             pbc_slave_tags[i],
@@ -272,10 +281,12 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
             print('MPC DEFINED (tag a)')
         else:
             for i in range(functionspace.num_sub_spaces):
-                mpc.create_periodic_constraint_topological(functionspace.sub(i), pbc_meshtags[i],
-                                                pbc_slave_tags[i],
-                                                pbc_slave_to_master_map,
-                                                bcs)
+                mpc.create_periodic_constraint_topological(
+                    functionspace.sub(i), pbc_meshtags[i],
+                    pbc_slave_tags[i],
+                    pbc_slave_to_master_map,
+                    bcs,
+                )
                 print('SUBSPACE MPC DEFINED (tag b)')
                 
     if len(pbc_directions) > 1:
@@ -304,10 +315,12 @@ def dirichlet_and_periodic_bcs(domain, functionspace, boundary_condition: List[s
             
         else:
             for i in range(functionspace.num_sub_spaces):
-                mpc.create_periodic_constraint_topological(functionspace.sub(i), pbc_meshtags[1],
-                                                    pbc_slave_tags[1],
-                                                    pbc_slave_to_master_map,
-                                                    bcs)
+                mpc.create_periodic_constraint_topological(
+                    functionspace.sub(i), pbc_meshtags[1],
+                    pbc_slave_tags[1],
+                    pbc_slave_to_master_map,
+                    bcs,
+                )
                 print('SUBSPACE MPC DEFINED (tag d)')
             
     mpc.finalize()
@@ -389,7 +402,6 @@ def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
     #################################################################
     print('Computing Γ to X')
     for kx in np.linspace(0.01, maxk, np1):
-        K = fem.Constant(mesh, PETSc.ScalarType((kx, ky)))
         eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
         eval[np.isclose(eval,0)] == 0
         eigfrq_sp_cmp = np.real(eval)**.5
@@ -403,7 +415,6 @@ def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
     print('Computing X to M')
     kx = maxk
     for ky in np.linspace(0.01, maxk, np2):
-        K = fem.Constant(mesh, PETSc.ScalarType((kx, ky)))
         eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
         eval[np.isclose(eval, 0)] == 0
         eigfrq_sp_cmp = np.real(eval) ** 0.5
@@ -450,7 +461,8 @@ def plotmesh(mesh, fspace, ct):
     num_local_cells = mesh.topology.index_map(mesh.topology.dim).size_local
     grid.cell_data["Marker"] = 1 - ct.values[ct.indices < num_local_cells]
     grid.set_active_scalars("Marker")
-    actor = plotter.add_mesh(grid, show_edges=True, line_width=3, edge_color='k', style='wireframe')
+    plotter.add_mesh(grid, show_edges=True, line_width=3, edge_color='k',
+                             style='wireframe')
     plotter.set_background('white', top='white')
     plotter.view_xy()
     plotter.camera.tight(padding=0.1)
@@ -467,13 +479,13 @@ def getMatProps(mesh, rho, c, ct):
         Q = FunctionSpace(mesh, ("DG", 0))
         E = Function(Q)
         Rho = Function(Q)    
-        material_tags   = np.unique(ct.values)
-        disk1_cells     = ct.find(1)
-        disk2_cells     = ct.find(2)
-        Rho.x.array[disk1_cells]    = np.full_like(disk1_cells, rho[0], dtype=ScalarType)
-        Rho.x.array[disk2_cells]    = np.full_like(disk2_cells, rho[1], dtype=ScalarType)
-        E.x.array[disk1_cells]      = np.full_like(disk1_cells, c[0], dtype=ScalarType)
-        E.x.array[disk2_cells]      = np.full_like(disk2_cells, c[1], dtype=ScalarType)
+        # material_tags = np.unique(ct.values)
+        disk1_cells = ct.find(1)
+        disk2_cells = ct.find(2)
+        Rho.x.array[disk1_cells] = np.full_like(disk1_cells, rho[0], dtype=ScalarType)
+        Rho.x.array[disk2_cells] = np.full_like(disk2_cells, rho[1], dtype=ScalarType)
+        E.x.array[disk1_cells] = np.full_like(disk1_cells, c[0], dtype=ScalarType)
+        E.x.array[disk2_cells] = np.full_like(disk2_cells, c[1], dtype=ScalarType)
 
     else:
         Rho = rho[0]
@@ -484,15 +496,15 @@ def getMatProps(mesh, rho, c, ct):
 #################################################
 
 def solve_bands_repo(
-        HSpts = None,
-        nsol  = 60, 
-        nvec = 20, 
-        a_len = 1, 
-        c = [1e2], 
-        rho = [5e1], 
-        fspace = 'cg', 
-        mesh = None,
-        ct = None
+        HSpts=None,
+        nsol=60, 
+        nvec=20, 
+        a_len=1, 
+        c=[1e2], 
+        rho=[5e1], 
+        fspace='cg', 
+        mesh=None,
+        ct=None,
     ):
     
     '''
@@ -573,11 +585,11 @@ def solve_bands_repo(
 
 
 #%%
-# ==============================================================================================
+# ======================================================================================
 #
 #                               COMPUTING THE BAND STRUCTURE
 #
-# ==============================================================================================
+# ======================================================================================
 
 if __name__ == "__main__":
 
@@ -596,8 +608,10 @@ if __name__ == "__main__":
     dvar        = 1 / 2       
     r           = np.array([1, dvar, 0.2, 0.8, 0.3]) * a_len * 0.95
     r           = np.array([1, np.random.rand(1)[0], 0.3]) * a_len * 0.95
-    # r           = np.array([[0.94912596, 0.94895456, 0.57853153, 0.26535732, 0.94616877, 0.94918783]])*a_len*.95; r= r.reshape(6,)
-    # r           = np.array([[0.94929848 ,0.94984762, 0.69426451, 0.94035399 ,0.86640294, 0.95    ]])*a_len*.95; r= r.reshape(6,)
+    # r           = np.array([0.94912596, 0.94895456, 0.57853153, 0.26535732,
+    #                          0.94616877, 0.94918783]) * a_len * 0.95
+    # r           = np.array([0.94929848, 0.94984762, 0.69426451, 0.94035399,
+    #                          0.86640294, 0.95])*a_len*.95
     dvec        = r
     offset      = 0 * np.pi
     design_vec  = np.concatenate((r / a_len, [offset]))
@@ -653,9 +667,10 @@ if __name__ == "__main__":
     #                  Generate a mesh with one inclusion                #
     ######################################################################
     meshalg                 = 6
-    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len, da, r, Nquads, offset,meshalg,
-                                                    refinement_level, refinement_dist,
-                                                    isrefined=True, cut=True)
+    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len, da, r, Nquads,
+                                                    offset,meshalg, refinement_level,
+                                                    refinement_dist, isrefined=True,
+                                                    cut=True)
 
     #################################################################
     #            Import to dolfinx and save as xdmf                 #
@@ -671,7 +686,10 @@ if __name__ == "__main__":
     savefigs  = False
     savedata  = False
     figpath   = 'figures//SE413_Proposal4//OptExample'
-    datapath  = 'data/SE413_OptimizationData_nquad{Nquads:d}_nDvec_{len_r:d}_nomMesh_{nomMesh:d}_refinement_{refine:d}'.format(Nquads=Nquads, len_r=len(r), nomMesh=mesh_dens, refine=refinement_level)
+    datapath  = (
+        'data/SE413_OptimizationData_nquad{Nquads:d}_nDvec_{len_r:d}'
+        '_nomMesh_{nomMesh:d}_refinement_{refine:d}'
+    ).format(Nquads=Nquads, len_r=len(r), nomMesh=mesh_dens, refine=refinement_level)
     isExist = os.path.exists(figpath)
     if savefigs:
         if not isExist:
@@ -686,7 +704,8 @@ if __name__ == "__main__":
     ###################################
     plotter = plotmesh(mesh, fspace, ct)
     plotter.show()
-    # evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh,ct)
+    # evals_disp, evec_all = solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace,
+    #                                    mesh,ct)
 
 
     # Define the high symmetry points of the lattice
@@ -860,7 +879,8 @@ if __name__ == '__main__':
         else:
             plt.plot(xx, ev, 'b.-', markersize=3)
     plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=18)
+    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],
+               fontsize=18)
     plt.xlabel('Wave Vector', fontsize=18)
     plt.ylabel('$\omega$ [rad/s]', fontsize=18)
     plt.title('Dispersion Diagram', fontsize=18)
@@ -871,9 +891,11 @@ if __name__ == '__main__':
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                                  facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                                  facecolor="k", ec='none', alpha=0.6))
     plt.legend()
     if savefigs:
         plt.savefig(figpath + '//BandGapDgm' + name + '.pdf' , bbox_inches='tight')
@@ -896,7 +918,8 @@ if __name__ == '__main__':
         else:
             ax1.plot(xx, ev, 'b.-', markersize=3)
     ax1.grid(color='gray', linestyle='-', linewidth=0.2)
-    ax1.set_xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=18)
+    ax1.set_xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]),
+                   ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=18)
     ax1.set_xlabel('Wave Vector', fontsize=18)
     ax1.set_ylabel('$\omega$ [rad/s]', fontsize=18)
     ax1.set_title('Dispersion Diagram', fontsize=18)
@@ -906,15 +929,19 @@ if __name__ == '__main__':
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
+            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                          facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
+            ax1.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                          facecolor="k", ec='none', alpha=0.6))
     ax1.legend()
     # =============================
     ax2 = fig.add_subplot(221)
-    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='k', alpha=1, label='bandgap'))
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w",
+                  ec='k', alpha=1, label='bandgap'))
     ax2.plot(x[0:int(len(xpt) / Nquads)], y[0:int(len(xpt) / Nquads)], '.r')
-    ax2.plot(x[int(len(xpt)/Nquads):-1], y[int(len(xpt) / Nquads):-1], '.', color='gray')
+    ax2.plot(x[int(len(xpt)/Nquads):-1], y[int(len(xpt) / Nquads):-1], '.',
+             color='gray')
     for j in range(len(xpt)):
         # plt.plot([0,x[r]], [0,y[r]],'k')
         if j < int(len(x) / Nquads):
@@ -929,7 +956,8 @@ if __name__ == '__main__':
     ax2.set_ylim((-a_len / 1.5, a_len / 1.5))
     # =============================
     ax2 = fig.add_subplot(223)
-    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='w', alpha=0.2, label='bandgap'))
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w",
+                  ec='w', alpha=0.2, label='bandgap'))
     ax2.plot(x, y, '.', color='gray')
     for j in range(len(xpt)):
         ax2.plot([0, x[j]], [0, y[j]], '--', color='gray', linewidth=1)
@@ -943,8 +971,10 @@ if __name__ == '__main__':
     # =============================
     fig.tight_layout(pad=1.4)
     if savefigs:
-        plt.savefig(figpath + '//BandGapDgm_withDesign_subpl' + name + '.pdf' , bbox_inches='tight')
-        plt.savefig('figures//jpeg//BandGapDgm_withDesign_subpl' + name + '.jpeg' , bbox_inches='tight') 
+        plt.savefig(figpath + '//BandGapDgm_withDesign_subpl' + name + '.pdf',
+                    bbox_inches='tight')
+        plt.savefig('figures//jpeg//BandGapDgm_withDesign_subpl' + name + '.jpeg',
+                    bbox_inches='tight') 
     plt.show()
     ###########################################################
 
@@ -962,7 +992,8 @@ if __name__ == '__main__':
         else:
             plt.plot(xx, ev, 'b-', markersize=3)
     plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'], fontsize=12)
+    plt.xticks(np.array([0, 1, 2, 2 + np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],
+               fontsize=12)
     plt.xlabel('Wave Vector ', fontsize=12)
     plt.ylabel('$\omega$ [rad/s]', fontsize=12)
     plt.title('Dispersion Diagram', fontsize=12)
@@ -973,17 +1004,21 @@ if __name__ == '__main__':
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6, label='bandgap'))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                                  facecolor="k", ec='none', alpha=0.6, label='bandgap'))
         else:
-            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb, facecolor="k", ec='none', alpha=0.6))
+            currentAxis.add_patch(Rectangle((np.min(xx), lb), np.max(xx), ub - lb,
+                                  facecolor="k", ec='none', alpha=0.6))
     plt.legend()
     # plt.title( (' $ x  = $' + str(np.round(design_vec,2))  ), fontsize = 12)
     # =============================
     ax = plt.gca()
     ax2 = ax.inset_axes([0.5, 0.58, 0.5, 0.5])
-    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w", ec='k', alpha=0.75, label='bandgap'))
+    ax2.add_patch(Rectangle((-a_len / 2, -a_len / 2), a_len, a_len, facecolor="w",
+                  ec='k', alpha=0.75, label='bandgap'))
     ax2.plot(x[0:int(len(xpt) / Nquads)], y[0:int(len(xpt) / Nquads)], '.r')
-    ax2.plot(x[int(len(xpt) / Nquads):-1], y[int(len(xpt) / Nquads):-1], '.', color='gray')
+    ax2.plot(x[int(len(xpt) / Nquads):-1], y[int(len(xpt) / Nquads):-1], '.',
+             color='gray')
     for r in range(len(x)):
         if r < int(len(x) / Nquads):
             ax2.plot([0, x[r]], [0, y[r]], '-', color='black', linewidth=1)
@@ -997,8 +1032,10 @@ if __name__ == '__main__':
     ax2.set_axis_off()
     # plt.savefig('BandGapDgm_withDesign_inset.pdf', bbox_inches = 'tight') 
     if savefigs:
-        plt.savefig(figpath + '//BandGapDgm_withDesign_inset_grid' + name + '.pdf' , bbox_inches='tight')
-        plt.savefig('figures//jpeg//BandGapDgm_withDesign_inset_grid' + name + '.jpeg' , bbox_inches='tight') 
+        plt.savefig(figpath + '//BandGapDgm_withDesign_inset_grid' + name + '.pdf',
+                    bbox_inches='tight')
+        plt.savefig('figures//jpeg//BandGapDgm_withDesign_inset_grid' + name + '.jpeg',
+                    bbox_inches='tight') 
     plt.show()
     ###########################################################
 
@@ -1039,11 +1076,13 @@ if __name__ == '__main__':
             cells, types, x = plot.create_vtk_mesh(V)
             grid = pyvista.UnstructuredGrid(cells, types, x)
             grid.point_data["u"] = u.x.array
-            u.vector.setArray(vr.vector[:] / np.max(vr.vector[:]) * np.sign(vr.vector[10]))
+            u.vector.setArray(vr.vector[:] / np.max(vr.vector[:])
+                              * np.sign(vr.vector[10]))
             edges = grid.extract_all_edges()
             warped = grid.warp_by_scalar("u", factor=0)
-            plotter.add_mesh(warped, show_edges=False, show_scalar_bar=True, scalars="u", cmap=mycmap)
-            # plotter.add_mesh(grid, style = 'wireframe', line_width = .5, color = 'black')
+            plotter.add_mesh(warped, show_edges=False, show_scalar_bar=True,
+                             scalars="u", cmap=mycmap)
+            # plotter.add_mesh(grid, style='wireframe', line_width=0.5, color='black')
             plotter.view_xy()
             plotter.add_text(str(euse), position=[100, 80], color='cyan')
             plotter.camera.tight(padding=0.1)

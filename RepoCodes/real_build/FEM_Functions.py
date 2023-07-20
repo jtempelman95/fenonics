@@ -47,64 +47,48 @@
 
 
 #%%
+# Imports
 
-# ################################################## #
-# General imports                                    #
-# ################################################## #
+
+# General
 import numpy as np
 import time
 import os
 
-# ################################################## #
-# Imports for plotting                               #
-# ################################################## #
+# Plotting
 import matplotlib.pyplot as plt
-from dolfinx.io import gmshio
 import pyvista
 
-# ################################################## #
-# Imports for the meshing                            #
-# ################################################## #
+# Meshing
 import gmsh
-from MeshFunctions      import get_mesh_SquareSpline,get_mesh_SquareMultiSpline
-from dolfinx.plot       import create_vtk_mesh
-from dolfinx.io         import XDMFFile
-from dolfinx.io.gmshio  import model_to_mesh
+from dolfinx.io.gmshio import model_to_mesh
+from dolfinx.plot import create_vtk_mesh
+from MeshFunctions import get_mesh_SquareSpline
 
-# ################################################## #
-# Imports for finite element modeling                #
-# ################################################## #
-from mpi4py import MPI
-import dolfinx_mpc
+# Finite element modeling
 import dolfinx
-from dolfinx.fem    import Function, FunctionSpace, VectorFunctionSpace
-from dolfinx.mesh   import create_unit_square, locate_entities_boundary
-from dolfinx.mesh   import create_rectangle
-from dolfinx.fem    import form
-from dolfinx.fem.petsc import assemble_matrix
-from dolfinx    import plot
-from dolfinx.io import gmshio
-from mpi4py     import MPI
-from dolfinx    import fem
-from ufl        import TrialFunction, TestFunction, grad, dx, dot, nabla_div, Identity, nabla_grad, inner, sym
+import dolfinx_mpc
+from dolfinx.fem import form, Function, FunctionSpace
+from dolfinx.mesh import locate_entities_boundary
+from dolfinx import fem, plot
+from mpi4py import MPI
+from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType
-from slepc4py   import SLEPc
-from petsc4py   import PETSc
-from typing     import List
-import scipy.sparse
-from scipy.sparse.linalg import eigsh
 from scipy import sparse
+from scipy.sparse.linalg import eigsh
+from slepc4py import SLEPc
+from ufl import dot, dx, grad, inner, TestFunction, TrialFunction
 
 
 # Set up pyvista
 pyvista.start_xvfb()
 
 
-# ==============================================================================================
+# ======================================================================================
 #
 #                               FINITE ELEMENT FUNCTIONS
 #
-# ==============================================================================================
+# ======================================================================================
 
 #################################################################
 #       Function for matrix conversion                          #
@@ -116,7 +100,7 @@ def petsc_to_numpy(A):
     ===================================
     '''
     sz = A.getSize()
-    A_ = np.zeros(sz, dtype=PETSc.ScalarType)
+    A_ = np.zeros(sz, dtype=ScalarType)
     for i in range(sz[0]):
         row = A.getRow(i)
         A_[i, row[0]] = row[1]
@@ -192,7 +176,7 @@ def scipysolve_complex(A_re, A_im, B, nval):
 def dirichlet_and_periodic_bcs(
     domain,
     functionspace,
-    bc_type: List[str] = ["dirichlet", "periodic"],
+    bc_type: list[str] = ["dirichlet", "periodic"],
     dbc_value=0
 ):
     """Create periodic and/or dirichlet boundary conditions.
@@ -335,11 +319,11 @@ def solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test):
         Solving the FEM problem
     ===================================
     '''
-    K = fem.Constant(mesh, PETSc.ScalarType((kx,ky)))
-    kx = fem.Constant(mesh,PETSc.ScalarType(kx))
-    ky  = fem.Constant(mesh,PETSc.ScalarType(ky))
-    a_form_re = E**2*(inner(grad(u_tr), grad(u_test)) + u_tr*u_test*(kx**2+ky**2))*dx
-    a_form_im = E**2*(u_tr*inner(grad(u_test),K) - u_test*inner(grad(u_tr),K))*dx
+    K = fem.Constant(mesh, ScalarType((kx, ky)))
+    kx = fem.Constant(mesh, ScalarType(kx))
+    ky  = fem.Constant(mesh, ScalarType(ky))
+    a_form_re = E**2 * (inner(grad(u_tr), grad(u_test)) + u_tr*u_test*(kx**2+ky**2))*dx
+    a_form_im = E**2 * (u_tr*inner(grad(u_test),K) - u_test*inner(grad(u_tr),K))*dx
     a_re = form(a_form_re)
     a_im = form(a_form_im)
     diagval_A = 1e8
@@ -358,7 +342,7 @@ def solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test):
     ############################################
     # Getting solutions
     ############################################
-    Kcomp = scipy.sparse.csr_matrix((av+1j*av_im, aj, ai))
+    Kcomp = sparse.csr_matrix((av+1j*av_im, aj, ai))
     eval, evec= eigsh(Kcomp, k = nvec, M=Mcomp, sigma = 1.0)
     return eval, evec 
 
@@ -388,7 +372,7 @@ def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
     B.assemble()
     assert isinstance(B, PETSc.Mat)
     ai, aj, av = B.getValuesCSR()
-    Mcomp = scipy.sparse.csr_matrix((av + 0j * av, aj, ai))
+    Mcomp = sparse.csr_matrix((av + 0j * av, aj, ai))
     
     ky          = 0
     evals_disp  = []
@@ -530,7 +514,7 @@ def solve_bands_repo(
     B.assemble()
     assert isinstance(B, PETSc.Mat)
     ai, aj, av = B.getValuesCSR()
-    Mcomp = scipy.sparse.csr_matrix((av + 0j*av, aj, ai))
+    Mcomp = sparse.csr_matrix((av + 0j*av, aj, ai))
 
     # Initializing data
     evals_disp  = []

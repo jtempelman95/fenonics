@@ -76,3 +76,6 @@ iOSInjectionProject/
 
 # Ignore mesh files
 *.msh
+
+# Ignore Python cache
+**/__pycache__/**

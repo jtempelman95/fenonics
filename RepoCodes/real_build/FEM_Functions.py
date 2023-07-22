@@ -127,7 +127,6 @@ def scipysolve(A: PETSc.Mat, B: PETSc.Mat, nval: int):
     eval, evec = eigsh(K, M=M, k=nval, sigma=1.0)
     return eval, evec
 
-
 def scipysolve_complex(A_re: PETSc.Mat, A_im: PETSc.Mat, B: PETSc.Mat, nval: int):
     '''Solve complex eigenvalue problem using scipy sparse eigensolver.
 
@@ -149,7 +148,7 @@ def scipysolve_complex(A_re: PETSc.Mat, A_im: PETSc.Mat, B: PETSc.Mat, nval: int
 def dirichlet_and_periodic_bcs(
     domain: dolfinx.mesh.Mesh,
     functionspace: fem.FunctionSpace,
-    bc_type: list[str] = ["dirichlet", "periodic"],
+    bc_type: list[str] = ["peroidic", "periodic"],
     dbc_value: ScalarType = 0,
 ):
     '''Create periodic and/or Dirichlet boundary conditions for a square domain.
@@ -281,9 +280,8 @@ def dirichlet_and_periodic_bcs(
     mpc.finalize()
     return mpc, bcs
 
-
 def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
-             mpc: dolfinx_mpc.MultiPointConstraint, bcs: list[dolfinx.fem.DirichletBC],
+             mpc: dolfinx_mpc.MultiPointConstraint, bcs: list[dolfinx.fem.dirichletbc],
              nvec: int, mesh: dolfinx.mesh.Mesh, u_tr: Argument, u_test: Argument):
     '''Assemble and solve dispersion at a single wavevector point.
 
@@ -414,7 +412,7 @@ def solve_bands(np1, np2, np3, nvec, a_len, c, rho, fspace, mesh, ct):
 
 
 def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
-                ct: dolfinx.mesh.CellTags):
+                ct: dolfinx.mesh.meshtags):
     '''Assign material properties to a domain.'''
 
     if len(rho) > 1:

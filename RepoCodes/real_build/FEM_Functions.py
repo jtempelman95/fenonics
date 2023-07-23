@@ -306,7 +306,7 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     a_form_im = E**2 * (u_tr*inner(grad(u_test), K) - u_test*inner(grad(u_tr), K))*dx
     a_re = form(a_form_re)
     a_im = form(a_form_im)
-    diagval_A = 1e8
+    diagval_A = 1e6
     A_re = dolfinx_mpc.assemble_matrix(a_re, mpc, bcs=bcs, diagval=diagval_A)
     A_im = dolfinx_mpc.assemble_matrix(a_im, mpc, bcs=bcs, diagval=diagval_A)
     ############################################
@@ -323,7 +323,7 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     # Getting solutions
     ############################################
     Kcomp = sparse.csr_matrix((av+1j*av_im, aj, ai))
-    eval, evec = eigsh(Kcomp, M=Mcomp, k=nvec, sigma=1.0)
+    eval, evec = eigsh(Kcomp, M=Mcomp, k=nvec, sigma = 0.1)
     return eval, evec
 
 
@@ -435,7 +435,7 @@ def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
     return E, Rho
 
 
-def solve_bands_repo(HSpts=None, nsol=60, nvec=20, a_len=1, c=[1e2], rho=[5e1],
+def solve_bands_custom_HS(HSpts=None, nsol=60, nvec=20, a_len=1, c=[1e2], rho=[5e1],
                      fspace='cg', mesh=None, ct=None):
     '''Solve band stucture, interpolating between high-symmetry points.'''
 
@@ -479,17 +479,23 @@ def solve_bands_repo(HSpts=None, nsol=60, nvec=20, a_len=1, c=[1e2], rho=[5e1],
         slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
 
         # Compute eigenvectors/values on line
-        for j in range(nvec_per_HS):
+        nsolve = nvec_per_HS
+        for j in range(nsolve):
             kx = kx + slope[0] / nvec_per_HS
             ky = ky + slope[1] / nvec_per_HS
+            ky = 0 if np.isclose(ky,0) else ky
+            kx = 0 if np.isclose(kx,0) else kx
             KX.append(kx)
             KY.append(ky)
             eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, nvec, mesh, u_tr, u_test)
             eval[np.isclose(eval, 0)] == 0
-            eigfrq_sp_cmp = np.real(eval) ** 0.5
+            eigfrq_sp_cmp = np.abs(np.real(eval)) ** 0.5
             eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
             evals_disp.append(eigfrq_sp_cmp)
             evec_all.append(evec)
+    
+    # evals_disp.append(evals_disp[0])
+    # evecs_all.append(evals_all[0])
 
     t2 = time.time() - start
     print('Time to compute dispersion: {0:.3f}s'.format(t2))

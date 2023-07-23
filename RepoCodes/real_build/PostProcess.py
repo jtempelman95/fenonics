@@ -6,6 +6,7 @@ import pyvista
 from dolfinx.plot       import create_vtk_mesh
 pyvista.start_xvfb()
 from matplotlib.patches  import Rectangle
+from dolfinx    import plot
 
 #################################################
 #             DATA PROCESSING                   #
@@ -113,7 +114,7 @@ def plotbands(bands, figsize = (5,4)):
 
     from matplotlib.patches import Rectangle
     plt.figure(figsize=figsize)
-    np1 = 20; np2 = 20; np3 = 20
+    np1, np2, np3 = bands.shape[1], bands.shape[1], bands.shape[1]
     x1 = np.linspace(0,1-1/np1,np1)
     x2 = np.linspace(1,2-1/np1,np2)
     x3 = np.linspace(2,2+np.sqrt(2),np3)
@@ -129,6 +130,58 @@ def plotbands(bands, figsize = (5,4)):
             plt.plot( xx,(ev),'b.-',markersize = 3)
     plt.grid(color='gray', linestyle='-', linewidth=0.2)
     plt.xticks(np.array([0,1,2,2+np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],fontsize=18)
+    plt.xlabel(r'Wave Vector ',fontsize=18)
+    plt.ylabel('$\omega$ [rad/s]',fontsize=18)
+    plt.title('Dispersion Diagram',fontsize = 18)
+    plt.xlim((0,np.max(xx)))
+    plt.ylim((0,np.max(maxfq)))
+    currentAxis = plt.gca()
+    for j in range(len(gapwidths)):
+        lb = lowbounds[j]
+        ub = highbounds[j]
+        if j == 0:
+            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3,label='bangap'))
+        else:
+            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3))
+    plt.legend()
+    return plt
+
+
+def plotbands_custom_HS(bands,  
+                HSpts, 
+                HS_labels,
+                nsol,
+                figsize = (5,4),):
+    """
+    Plot the disprsion bands with bandgaps highlighted on a use-defined boundary
+    """ 
+    bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(bands)
+    
+    from matplotlib.patches import Rectangle
+    plt.figure(figsize=figsize)
+    np1 = 20; np2 = 20; np3 = 20
+    nvec_per_HS = int(round(nsol/len(HSpts)))
+    xx = []
+    start = 0
+    for k in range(len(HSpts)-1):
+        xx.append(np.linspace(start,start+1-1/nvec_per_HS ,nvec_per_HS))
+        start+=1 
+    xx = np.array(xx)
+    d1,d2 = xx.shape[0],xx.shape[1]
+    xx = xx.reshape(d2*d1,)
+    nvec = 20
+
+    maxfq = bands.max()
+    print(maxfq)
+    # PLOT THE DISPERSION BANDS
+    for n in range(nvec):
+        ev = bands[:,n]
+        if n == 0:
+            plt.plot( xx,(ev),'b.-',markersize = 3, label = 'Bands')
+        else:
+            plt.plot( xx,(ev),'b.-',markersize = 3)
+    plt.grid(color='gray', linestyle='-', linewidth=0.2)
+    plt.xticks(np.linspace(0,xx.max(),len(HS_labels)), HS_labels,fontsize=18)
     plt.xlabel(r'Wave Vector ',fontsize=18)
     plt.ylabel('$\omega$ [rad/s]',fontsize=18)
     plt.title('Dispersion Diagram',fontsize = 18)
@@ -244,10 +297,10 @@ def plotvecs(
         '''
         
         # Post-processing the -vecs
-        data = np.array(evec_all)
+        data = np.array(evecs)
         et = data[evec_number,:,eval_number]; 
-        vr = Function(V)
-        vi = Function(V)
+        vr = dolfinx.fem.Function(V)
+        vi = dolfinx.fem.Function(V)
         vr.vector[:] = np.real(et)# / np.max( np.real(et))
         vi.vector[:] = np.imag(et)# / np.max( np.real(et))
         vr.x.scatter_forward()
@@ -257,7 +310,7 @@ def plotvecs(
 
         # Plotting eigenvectors with pyvista
         mycmap = plt.cm.get_cmap('bwr', 50)
-        u = Function(V)
+        u = dolfinx.fem.Function(V)
         cells, types, x = plot.create_vtk_mesh(V)
         grid = pyvista.UnstructuredGrid(cells, types, x)
         # u.vector.setArray(vr.vector[:]/np.max(vr.vector[:])*np.sign(vr.vector[10]))

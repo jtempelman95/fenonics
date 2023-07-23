@@ -114,12 +114,12 @@ def plotbands(bands, figsize = (5,4)):
 
     from matplotlib.patches import Rectangle
     plt.figure(figsize=figsize)
-    np1, np2, np3 = bands.shape[1], bands.shape[1], bands.shape[1]
-    x1 = np.linspace(0,1-1/np1,np1)
-    x2 = np.linspace(1,2-1/np1,np2)
-    x3 = np.linspace(2,2+np.sqrt(2),np3)
+    np1, np2, np3 = bands.shape[0]/3, bands.shape[0]/3, bands.shape[0]/3
+    x1 = np.linspace(0,1-1/np1,int(np1))
+    x2 = np.linspace(1,2-1/np1,int(np2))
+    x3 = np.linspace(2,2+np.sqrt(2),int(np3))
     xx = np.concatenate((x1,x2,x3))
-    nvec = 20
+    nvec = np.array(bands).shape[1]
     maxfq = highbounds.max()
     # PLOT THE DISPERSION BANDS
     for n in range(nvec):
@@ -169,7 +169,8 @@ def plotbands_custom_HS(bands,
     xx = np.array(xx)
     d1,d2 = xx.shape[0],xx.shape[1]
     xx = xx.reshape(d2*d1,)
-    nvec = 20
+    
+    nvec = np.array(bands).shape[1]
 
     maxfq = bands.max()
     print(maxfq)

@@ -195,7 +195,6 @@ def dirichlet_and_periodic_bcs(
                                                        pbc_slave_to_master_map,
                                                        bcs)
             print('MPC DEFINED (tag c)')
-
         else:
             for i in range(functionspace.num_sub_spaces):
                 mpc.create_periodic_constraint_topological(
@@ -210,17 +209,38 @@ def dirichlet_and_periodic_bcs(
     return mpc, bcs
 
 
-def PetscToCSR(A):
-    """Converting a Petsc matrix to sparse scipy"""
+def petsc_to_csr(A):
+    """Converting a Petsc matrix to scipy csr array
+    
+    parameters
+    -----------
+    args:
+        A - assembled Petsc matrix  
+
+    returns
+    ---------
+    Scipy csr array of A.
+    """
     
     assert isinstance(A, PETSc.Mat)
     ai, aj, av = A.getValuesCSR()
-
     return sparse.csr_matrix((av, aj, ai))
 
 
-def PetscToCSR_complex(*args):
-    """Converting a Petsc matrix to complex sparse scipy"""
+def petsc_to_csr_complex(*args):
+    """Converting a Petsc matrix to complex scipy csr array
+    
+    parameters
+    -----------
+    args:
+        args[0] - assembled Petsc matrix containg real part of complex matrix 
+        args[1] - assembled Petsc matrix containg imaginary part of complex matrix 
+
+    returns
+    ---------
+    A complex scipy csr object. If only 1 arg is passed, then the imaginary values
+    are set to 0 by default.
+    """
     
     assert isinstance(args[0], PETSc.Mat)
     ai, aj, av = args[0].getValuesCSR()
@@ -232,7 +252,7 @@ def PetscToCSR_complex(*args):
         return sparse.csr_matrix((av+0j*av, aj, ai))
     
     
-def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
+def solve_system(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
              mpc: dolfinx_mpc.MultiPointConstraint, bcs: list[dolfinx.fem.dirichletbc],
              n_solutions: int, mesh: dolfinx.mesh.Mesh, u_tr: Argument, u_test: Argument):
     '''Assemble and solve dispersion at a single wavevector point.
@@ -251,7 +271,7 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     u_test - test function
     '''
 
-    # Defune the weak form
+    # Define the bilinear weak form
     K = fem.Constant(mesh, ScalarType((kx, ky)))
     kx = fem.Constant(mesh, ScalarType(kx))
     ky = fem.Constant(mesh, ScalarType(ky))
@@ -266,21 +286,31 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     A_im = dolfinx_mpc.assemble_matrix(a_im, mpc, bcs=bcs, diagval=diagval_A)
     A_re.assemble()
     A_im.assemble()
-    Kcomp = PetscToCSR_complex(A_re,A_im)
+    Kcomp = petsc_to_csr_complex(A_re,A_im)
     eval, evec = eigsh(Kcomp, M=Mcomp, k=n_solutions, sigma = 0.1)
     return eval, evec
 
-def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
+def assign_mat_props(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
                 ct: dolfinx.mesh.meshtags):
-    '''Assign material properties to a domain.'''
+    '''Assign material properties to a domain. 
 
+    parameters
+    ----------
+        mesh - the dolfinx mesh 
+        rho - a list of densities for each mesh tag
+        c - a list of wave speeds for each mesh tag
+    returns
+    -------
+        A set of arrays containing mass and wave speed
+        for each mesh coordinate
+    '''
+    
     if len(rho) > 1:
         # E.g., if more than one physical group assigned.
         # Assign material propoerties to each physical group.
         Q = FunctionSpace(mesh, ("DG", 0))
         E = Function(Q)
         Rho = Function(Q)
-        # material_tags = np.unique(ct.values)
         disk1_cells = ct.find(1)
         disk2_cells = ct.find(2)
         Rho.x.array[disk1_cells] = np.full_like(disk1_cells, rho[0], dtype=ScalarType)
@@ -293,14 +323,27 @@ def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
     return E, Rho
 
 def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
-    """ Get the complex valued mass matrix """
+    """ Get the complex valued mass matrix 
+
+    parameters
+    ----------
+        u_tr - trial function
+        u_test - test function
+        Rho - Array of densities on mesh coords
+        mpc - multi-point periodic constraint
+        bcs - Dirichlet BCs
+        
+    returns
+    -------
+        Complex valued mass matrix is scipy csr format
+    """
     
     m_form = Rho * dot(u_tr, u_test) * dx
     m = form(m_form)
     diagval_B = 1e-2
     B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
     B.assemble()
-    return PetscToCSR_complex(B)
+    return petsc_to_csr_complex(B)
 
     
 
@@ -342,7 +385,7 @@ def solve_bands(HSpts: list = None, HSstr: list = None, n_wavevector: int = 60, 
     
 
     # Get Material Properties
-    E, Rho = getMatProps(mesh, rho, c, ct)
+    E, Rho = assign_mat_props(mesh, rho, c, ct)
 
     # Define the function spaces and the mesh constraint
     V = FunctionSpace(mesh, (fspace, order))
@@ -377,7 +420,7 @@ def solve_bands(HSpts: list = None, HSstr: list = None, n_wavevector: int = 60, 
             kx = 0 if np.isclose(kx,0) else kx
             KX.append(kx)
             KY.append(ky)
-            eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, n_solutions, mesh, u_tr, u_test)
+            eval, evec = solve_system(kx, ky, E, Mcomp, mpc, bcs, n_solutions, mesh, u_tr, u_test)
             eval[np.isclose(eval, 0)] == 0
             eigfrq_sp_cmp = np.abs(np.real(eval)) ** 0.5
             eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)

@@ -46,8 +46,6 @@
 
 
 #%%  # noqa E265
-# Imports
-
 
 # General
 import numpy as np
@@ -211,6 +209,29 @@ def dirichlet_and_periodic_bcs(
     mpc.finalize()
     return mpc, bcs
 
+
+def PetscToCSR(A):
+    """Converting a Petsc matrix to sparse scipy"""
+    
+    assert isinstance(A, PETSc.Mat)
+    ai, aj, av = A.getValuesCSR()
+
+    return sparse.csr_matrix((av, aj, ai))
+
+
+def PetscToCSR_complex(*args):
+    """Converting a Petsc matrix to complex sparse scipy"""
+    
+    assert isinstance(args[0], PETSc.Mat)
+    ai, aj, av = args[0].getValuesCSR()
+    if len(args)>1:
+        assert isinstance(args[1], PETSc.Mat)
+        _, _, av_im = args[1].getValuesCSR()
+        return sparse.csr_matrix((av+1j*av_im, aj, ai))
+    else:
+        return sparse.csr_matrix((av+0j*av, aj, ai))
+    
+    
 def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
              mpc: dolfinx_mpc.MultiPointConstraint, bcs: list[dolfinx.fem.dirichletbc],
              n_solutions: int, mesh: dolfinx.mesh.Mesh, u_tr: Argument, u_test: Argument):
@@ -230,6 +251,7 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     u_test - test function
     '''
 
+    # Defune the weak form
     K = fem.Constant(mesh, ScalarType((kx, ky)))
     kx = fem.Constant(mesh, ScalarType(kx))
     ky = fem.Constant(mesh, ScalarType(ky))
@@ -237,23 +259,14 @@ def solvesys(kx: float, ky: float, E: float, Mcomp: PETSc.Mat,
     a_form_im = E**2 * (u_tr*inner(grad(u_test), K) - u_test*inner(grad(u_tr), K))*dx
     a_re = form(a_form_re)
     a_im = form(a_form_im)
+    
+    # Assemble Solve the eigenproblem
     diagval_A = 1e6
     A_re = dolfinx_mpc.assemble_matrix(a_re, mpc, bcs=bcs, diagval=diagval_A)
     A_im = dolfinx_mpc.assemble_matrix(a_im, mpc, bcs=bcs, diagval=diagval_A)
-    ############################################
-    # efficient conversion to scipy for
-    # solving the complex problem (recommended)
-    ############################################
     A_re.assemble()
-    assert isinstance(A_re, PETSc.Mat)
-    ai, aj, av = A_re.getValuesCSR()
     A_im.assemble()
-    assert isinstance(A_im, PETSc.Mat)
-    _, _, av_im = A_im.getValuesCSR()
-    ############################################
-    # Getting solutions
-    ############################################
-    Kcomp = sparse.csr_matrix((av+1j*av_im, aj, ai))
+    Kcomp = PetscToCSR_complex(A_re,A_im)
     eval, evec = eigsh(Kcomp, M=Mcomp, k=n_solutions, sigma = 0.1)
     return eval, evec
 
@@ -281,16 +294,15 @@ def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
 
 def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
     """ Get the complex valued mass matrix """
+    
     m_form = Rho * dot(u_tr, u_test) * dx
     m = form(m_form)
     diagval_B = 1e-2
     B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
     B.assemble()
-    assert isinstance(B, PETSc.Mat)
-    ai, aj, av = B.getValuesCSR()
-    M = sparse.csr_matrix((av + 0j*av, aj, ai))
+    return PetscToCSR_complex(B)
+
     
-    return M
 
 def solve_bands(HSpts: list = None, HSstr: list = None, n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 1, 
                 c: list = [1e2], rho: list = [5e1], fspace: str = 'CG', mesh: dolfinx.mesh.Mesh = None, 

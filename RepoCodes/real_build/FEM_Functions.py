@@ -76,75 +76,6 @@ from ufl import dot, dx, grad, inner, Argument, TestFunction, TrialFunction
 # ======================================================================================
 
 
-def petsc_to_numpy(A):
-    '''Convert PETSc matrix to dense numpy matrix.'''
-
-    warnings.warn("This function is inefficient and will be removed in the future.",
-                  category=DeprecationWarning)
-
-    sz = A.getSize()
-    A_ = np.zeros(sz, dtype=ScalarType)
-    for i in range(sz[0]):
-        row = A.getRow(i)
-        A_[i, row[0]] = row[1]
-    return A_
-
-
-def complex_formatter(x):
-    '''Convert complex number to string with exponential notation.'''
-
-    return "{0:-10.3e}{1:+10.3e}j".format(np.real(x), np.imag(x))
-
-
-def get_EPS(A: PETSc.Mat, B: PETSc.Mat, n_solutions: int):
-    '''Create and set up a SLEPc eigensolver.'''
-
-    EPS = SLEPc.EPS()
-    EPS.create(comm=MPI.COMM_WORLD)
-    EPS.setOperators(A, B)
-    EPS.setProblemType(SLEPc.EPS.ProblemType.GNHEP)
-    EPS.setDimensions(nev=n_solutions)
-    EPS.setType(SLEPc.EPS.Type.KRYLOVSCHUR)
-    EPS.setWhichEigenpairs(SLEPc.EPS.Which.TARGET_MAGNITUDE)
-    EPS.setTarget(0)
-    EPS.setTolerances(tol=1e-5, max_it=12)
-    ST = EPS.getST()
-    ST.setType(SLEPc.ST.Type.SINVERT)
-    ST.setShift(10)
-    EPS.setST(ST)
-    EPS.setFromOptions()
-    return EPS
-
-
-def scipysolve(A: PETSc.Mat, B: PETSc.Mat, nval: int):
-    '''Solve eigenvalue problem using scipy sparse eigensolver.'''
-
-    K = petsc_to_numpy(A)
-    M = petsc_to_numpy(B)
-    K = sparse.csr_array(K)
-    M = sparse.csr_array(M)
-
-    eval, evec = eigsh(K, M=M, k=nval, sigma=1.0)
-    return eval, evec
-
-def scipysolve_complex(A_re: PETSc.Mat, A_im: PETSc.Mat, B: PETSc.Mat, nval: int):
-    '''Solve complex eigenvalue problem using scipy sparse eigensolver.
-
-    In particular, solve the generalized eigenvalue problem
-
-        A * x_i = lambda_i * B * x_i
-
-    where `A = A_re + 1j * A_im` is a complex-valued matrix.
-    '''
-
-    A_re_np = petsc_to_numpy(A_re)
-    A_im_np = petsc_to_numpy(A_im)
-    Kcomp = A_re_np + 1j * A_im_np
-
-    eval, evec = eigsh(Kcomp, M=B, k=24, sigma=1.0)
-    return eval, evec
-
-
 def dirichlet_and_periodic_bcs(
     domain: dolfinx.mesh.Mesh,
     functionspace: fem.FunctionSpace,
@@ -343,7 +274,6 @@ def getMatProps(mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float],
         Rho.x.array[disk2_cells] = np.full_like(disk2_cells, rho[1], dtype=ScalarType)
         E.x.array[disk1_cells] = np.full_like(disk1_cells, c[0], dtype=ScalarType)
         E.x.array[disk2_cells] = np.full_like(disk2_cells, c[1], dtype=ScalarType)
-
     else:
         Rho = rho[0]
         E = c[0]

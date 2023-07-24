@@ -106,61 +106,38 @@ def GetSpline(gmsh,a_len, xpt, ypt):
 #             VISUALIZATION                     #
 #################################################
 
-def plotbands(bands, figsize = (5,4)):
-    """
-    Plot the disprsion bands with bandgaps highlighted on the G-X-M-G boundary
-    """ 
-    bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(bands)
-
-    from matplotlib.patches import Rectangle
-    plt.figure(figsize=figsize)
-    np1, np2, np3 = bands.shape[0]/3, bands.shape[0]/3, bands.shape[0]/3
-    x1 = np.linspace(0,1-1/np1,int(np1))
-    x2 = np.linspace(1,2-1/np1,int(np2))
-    x3 = np.linspace(2,2+np.sqrt(2),int(np3))
-    xx = np.concatenate((x1,x2,x3))
-    nvec = np.array(bands).shape[1]
-    maxfq = highbounds.max()
-    # PLOT THE DISPERSION BANDS
-    for n in range(nvec):
-        ev = bands[:,n]
-        if n == 0:
-            plt.plot( xx,(ev),'b.-',markersize = 3, label = 'Bands')
-        else:
-            plt.plot( xx,(ev),'b.-',markersize = 3)
-    plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.array([0,1,2,2+np.sqrt(2)]), ['$\Gamma$', 'X', 'M', '$\Gamma$'],fontsize=18)
-    plt.xlabel(r'Wave Vector ',fontsize=18)
-    plt.ylabel('$\omega$ [rad/s]',fontsize=18)
-    plt.title('Dispersion Diagram',fontsize = 18)
-    plt.xlim((0,np.max(xx)))
-    plt.ylim((0,np.max(maxfq)))
-    currentAxis = plt.gca()
-    for j in range(len(gapwidths)):
-        lb = lowbounds[j]
-        ub = highbounds[j]
-        if j == 0:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3,label='bangap'))
-        else:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3))
-    plt.legend()
-    return plt
-
-
-def plotbands_custom_HS(bands,  
-                HSpts, 
-                HS_labels,
-                nsol,
-                figsize = (5,4),):
-    """
-    Plot the disprsion bands with bandgaps highlighted on a use-defined boundary
-    """ 
-    bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(bands)
+def plotbands(bands: np.array = None,  HSpts: list = None, HS_labels: list = None ,
+                inset: bool = False, KX:list = None,  KY:list = None, a_len: float = 1.,
+                figsize: tuple = (5,4)):
+    """ Plotting the dispersion bands 
     
-    from matplotlib.patches import Rectangle
+    Paramters
+    ---------
+        bands - A numpy array containing all eigensolutions at each wavenumber
+        HSpts - A list of the numeric values of high-symmetry points solvded fro
+        HS_labels - The labels of the high-symmetry points
+        inset -  whetehr or not to plot the path along the IBZ in the inset (based on KX, KY)
+        KX - The kx-wavevectors visited in the disperison computaiton (a list of points)
+        KY - The ky-wavevectors visited in the disperison computaiton (a list of points)
+        figsize - A tuple for the figure size. (5,4) is default
+        
+    output
+    --------
+        plt - The matplotlib.pyplot object 
+    """ 
+    
+    bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(bands)
+
     plt.figure(figsize=figsize)
-    np1 = 20; np2 = 20; np3 = 20
-    nvec_per_HS = int(round(nsol/len(HSpts)))
+    
+    # Default assumes a G-X-M-G boundary
+    if HS_labels == None:
+        HS_labels = ['Γ', 'X', 'M', 'Γ']
+    
+    # Get number of solutions inbetween HS points
+    nsol = bands.shape[0]
+    nvec_per_HS = int(round(nsol/len(HS_labels)+1))
+
     xx = []
     start = 0
     for k in range(len(HSpts)-1):
@@ -169,34 +146,64 @@ def plotbands_custom_HS(bands,
     xx = np.array(xx)
     d1,d2 = xx.shape[0],xx.shape[1]
     xx = xx.reshape(d2*d1,)
-    
     nvec = np.array(bands).shape[1]
 
-    maxfq = bands.max()
-    print(maxfq)
+    
     # PLOT THE DISPERSION BANDS
     for n in range(nvec):
-        ev = bands[:,n]
-        if n == 0:
-            plt.plot( xx,(ev),'b.-',markersize = 3, label = 'Bands')
-        else:
-            plt.plot( xx,(ev),'b.-',markersize = 3)
-    plt.grid(color='gray', linestyle='-', linewidth=0.2)
-    plt.xticks(np.linspace(0,xx.max(),len(HS_labels)), HS_labels,fontsize=18)
-    plt.xlabel(r'Wave Vector ',fontsize=18)
-    plt.ylabel('$\omega$ [rad/s]',fontsize=18)
-    plt.title('Dispersion Diagram',fontsize = 18)
-    plt.xlim((0,np.max(xx)))
-    plt.ylim((0,np.max(maxfq)))
+        if n == 0: plt.plot(xx, (bands[:,n]),'b.-',markersize = 0, label = 'Bands')
+        if n > 0: plt.plot(xx,(bands[:,n]),'b.-',markersize = 0)
+        
+    # Plot the band gaps
     currentAxis = plt.gca()
     for j in range(len(gapwidths)):
         lb = lowbounds[j]
         ub = highbounds[j]
         if j == 0:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3,label='bangap'))
+            currentAxis.add_patch(Rectangle
+                (
+                    (np.min(xx),lb), np.max(xx), ub-lb,  
+                    facecolor="g" ,ec='none', alpha =.3,label='bangap'
+                )
+            )
         else:
-            currentAxis.add_patch( Rectangle((np.min(xx),lb), np.max(xx), ub-lb,  facecolor="g" ,ec='none', alpha =.3))
+            currentAxis.add_patch(Rectangle
+                (
+                    (np.min(xx),lb), np.max(xx), ub-lb,  
+                    facecolor="g" ,ec='none', alpha =.3,
+                )
+            )
+
+    # Plot formatting
+    plt.grid(color='gray', linestyle='-', linewidth=0.3)
+    plt.xticks(np.linspace(0,xx.max(),len(HS_labels)), HS_labels,fontsize=18)
+    plt.xlabel(r'Wave Vector ',fontsize=18)
+    plt.ylabel('$\omega$ [rad/s]',fontsize=18)
+    plt.title('Dispersion Diagram',fontsize = 18)
+    plt.xlim((0,xx.max()))
+    plt.ylim((0,bands.max()))    
     plt.legend()
+    
+    # Inset for the IBZ
+    if inset: 
+        ax = plt.gca()
+        ax2 = ax.inset_axes([0.6, .6, 0.4, 0.4])
+        ax2.plot(np.array(KX)*a_len/np.pi,np.array(KY)*a_len/np.pi)
+        ax2.scatter(np.array(HSpts)[:,0]*a_len/np.pi, np.array(HSpts)[:,1]*a_len/np.pi)
+        ax2.text(0.05,0.05,'$\Gamma$',fontsize = 15)
+        ax2.text(1.05,0.05,'X',fontsize = 15)
+        ax2.text(1.05,1.05,'M',fontsize = 15)
+        ax2.text(0.05,1.05,'Y',fontsize = 15)
+        ax2.text(-1.05,0.05,'X*',fontsize = 15)
+        ax2.text(-1.05,1.05,'M*',fontsize = 15)
+        ax2.add_patch( Rectangle((-1,-1),2,2,  facecolor="gray" ,ec='none', alpha =.3))
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+        ax2.axis('square')
+        ax2.set_alpha(.2)
+        ax2.set_xlim((-1.5, 1.5))
+        ax2.set_ylim((-1.5, 1.5))
+
     return plt
 
 

@@ -362,7 +362,7 @@ def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
     
     return M
 
-def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 1, 
+def solve_bands(HSpts: list = None, HSstr: list = None, n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 1, 
                 c: list = [1e2], rho: list = [5e1], fspace: str = 'CG', mesh: dolfinx.mesh.Mesh = None, 
                 ct: dolfinx.mesh.meshtags = None, order: int = 1):
     '''Solve the band stucture on Γ-X-M-Γ.
@@ -378,6 +378,7 @@ def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 
     mesh    - The mesh to solve over
     ct      - The cell tags on the mesh
     order   - The order of the function space
+    HSpts   - A list of the high-symmetry points to sovle
     
     output
     -----------
@@ -386,12 +387,17 @@ def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 
     mpc         - The multi-point constraint on the mesh
     '''
 
-    # Setting the high symmetr points
-    P1 = [0,0]                      # Gamma 
-    P2 = [np.pi/a_len, 0]           # X
-    P3 = [np.pi/a_len, np.pi/a_len] # K
-    HSpts = [P1,P2,P3,P1]
-    HSstr = ['Γ', 'X', 'M', 'Γ']
+    if HSpts == None:
+        # Setting the high symmetr points
+        P1 = [0,0]                      # Gamma 
+        P2 = [np.pi/a_len, 0]           # X
+        P3 = [np.pi/a_len, np.pi/a_len] # K
+        HSpts = [P1,P2,P3,P1]
+        HSstr = ['Γ', 'X', 'M', 'Γ']
+    if HSstr == None:    
+        HSstr = np.linspace(0,len(HSpts),len(HSpts)+1)
+
+    
 
     # Get Material Properties
     E, Rho = getMatProps(mesh, rho, c, ct)
@@ -411,7 +417,7 @@ def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 
     nvec_per_HS = int(round(n_wavevector / len(HSpts)))
     evals_disp, evecs_disp = [], []
     start = time.time()
-    KX, Ky = [], []
+    KX, KY = [], []
     kx, ky = HSpts[0][0], HSpts[0][1]
     KX.append(kx)
     KY.append(ky)
@@ -419,7 +425,7 @@ def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 
     # Loop to compute band structure
     print('Computing Band Structure... ')
     for k in range(len(HSpts) - 1):
-        print('Computing '+ HSstr[k] + ' to ' + HSstr[k+1] )
+        print('Computing '+ str(HSstr[k]) + ' to ' + str(HSstr[k+1]) )
         slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
         nsolve = nvec_per_HS
         for j in range(nsolve):
@@ -446,100 +452,8 @@ def solve_bands(n_wavevector: int = 60,  n_solutions: int = 20,  a_len: float = 
     print('N_wavenumbers....' + str(n_wavevector))
     print('T total....' + str(round(t2, 3)))
 
-    return evals_disp, evecs_disp, mpc
-
-
-
-
-def solve_bands_custom_HS(HSpts: list = None, n_wavevector: int = 60, n_solutions: int = 20, 
-                          c: list = [1e2], rho: list = [5e1], fspace: str = 'cg', mesh: dolfinx.mesh.Mesh = None,
-                          ct: dolfinx.mesh.meshtags = None, order: int = 1):
-    '''Solve band stucture, interpolating between high-symmetry points.
-    
-    parameters
-    ----------
-    HSPts        - A list containing the coordinates of high-symetry points
-    n_solutions  - Number of eigensolutions to generate for each wavevector
-    n_wavevector - Number of wavevectors in the IBZ
-    a_len   - Chareteristic unit cell length
-    c       - Speed of sound in the material
-    rho     - Desnity of the material
-    fspace  - Function space to use
-    mesh    - The mesh to solve over
-    ct      - The cell tags on the mesh
-    order   - The order of the function space
-    
-    output
-    -----------
-    evals_disp  - The eigenvalues of each wavevector
-    evecs_disp  - The eigenvectors of each wavevector
-    mpc         - The multi-point constraint on the mesh
-    '''
-    start = time.time()
-    
-    # Get Material Properties
-    E, Rho = getMatProps(mesh, rho, c, ct)
-
-    # Define the function spaces and the mesh constraint
-    V = FunctionSpace(mesh, (fspace, order))
-    mpc, bcs = dirichlet_and_periodic_bcs(mesh, V, ["periodic", "periodic"])
-    
-    # Define trial and test functions
-    u_tr = TrialFunction(V)
-    u_test = TestFunction(V)
-    
-    # Make mass matrix
-    Mcomp = mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs)
-
-    # Initializing data
-    evals_disp = []
-    start = time.time()
-    evecs_disp = []
-    print('Computing band structure...')
-
-
-    nvec_per_HS = int(round(n_wavevector / len(HSpts)))
-    kx = HSpts[0][0]
-    ky = HSpts[0][0]
-    KX = []
-    KY = []
-    KX.append(kx)
-    KY.append(ky)
-    for k in range(len(HSpts) - 1):
-        # Get slope along IBZ boundary partition
-        slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
-
-        # Computing dispersion across the high-symmmetry points
-        print('Computing HS points ' + str(k+1) +  ' to '  + str(k+2) )
-
-        # Compute eigenvectors/values on line
-        nsolve = nvec_per_HS
-        for j in range(nsolve):
-            kx = kx + slope[0] / nvec_per_HS
-            ky = ky + slope[1] / nvec_per_HS
-            ky = 0 if np.isclose(ky,0) else ky
-            kx = 0 if np.isclose(kx,0) else kx
-            KX.append(kx)
-            KY.append(ky)
-            eval, evec = solvesys(kx, ky, E, Mcomp, mpc, bcs, n_solutions, mesh, u_tr, u_test)
-            eval[np.isclose(eval, 0)] == 0
-            eigfrq_sp_cmp = np.abs(np.real(eval)) ** 0.5
-            eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
-            evals_disp.append(eigfrq_sp_cmp)
-            evecs_disp.append(evec)
-            
-    t2 = time.time() - start
-    print('Time to compute dispersion: {0:.3f}s'.format(t2))
-
-    print('Band computation complete')
-    print('-----------------')
-    print('N_dof...{0:d}'.format(ct.values.shape[0]))
-    print('N_vectors...{0:d}'.format(n_solutions))
-    print('N_wavenumbers...{0:d}'.format(n_wavevector))
-    # print('Ttoal Eigenproblems....'  + str(n_solutions*(np1+np1+np3)))
-    print('T total...{0:.3f}'.format(t2))
-
     return evals_disp, evecs_disp, mpc, KX, KY
+
 
 
 ##########################################################################################
@@ -556,7 +470,7 @@ if __name__ == '__main__':
     from MeshFunctions import get_mesh_SquareSpline 
     
     # Meshing parameters
-    cut         = False
+    cut         = True
     a_len       = .1
     r           = np.array([1,.9,.3,.8,.6])*a_len*.75
     offset      = 0*np.pi/4
@@ -604,15 +518,16 @@ if __name__ == '__main__':
              G, Xp, Mp,
              G, Y, Mp,
              G]
+    
 
     # Define the number of solutiosn per wavevec and number of wavevecs to solve for
     n_solutions  = 30
     n_wavevector = len(HSpts)*10
 
     # Solve the dispersion problem
-    evals_disp, evec_all, mpc, KX, KY = solve_bands_custom_HS(
-        HSpts  = HSpts, n_wavevector  = n_wavevector,  n_solutions = n_solutions, 
-        c = c,  rho = rho,  fspace = 'CG',  mesh = mesh, ct = ct
+    evals_disp, evec_all, mpc, KX, KY = solve_bands(HSpts  = HSpts, n_wavevector  = n_wavevector,  
+                        n_solutions = n_solutions, a_len = a_len,
+                         c = c,  rho = rho,  fspace = 'CG',  mesh = mesh, ct = ct
     )
     
     bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(np.array(evals_disp))
@@ -621,21 +536,11 @@ if __name__ == '__main__':
                  '$\Gamma$', 'X*', 'M*',
                  '$\Gamma$', 'Y*', 'M*',
                  '$\Gamma$']
-    plt = plotbands_custom_HS(np.array(evals_disp), HSpts,HS_labels, n_wavevector)
+    
+
+    plt = plotbands(np.array(evals_disp),figsize = (5,5), HSpts = HSpts, HS_labels = HS_labels, a_len = a_len,
+                      KX = KX, KY = KY, inset = True)
     plt.show()
     
     from matplotlib.patches  import Rectangle
-    plt.plot(np.array(KX)*a_len/np.pi,np.array(KY)*a_len/np.pi)
-    plt.scatter(np.array(HSpts)[:,0]*a_len/np.pi, np.array(HSpts)[:,1]*a_len/np.pi)
-    plt.text(0.05,0.05,'$\Gamma$',fontsize = 15)
-    plt.text(1.05,0.05,'X',fontsize = 15)
-    plt.text(1.05,1.05,'M',fontsize = 15)
-    plt.text(0.05,1.05,'Y',fontsize = 15)
-    plt.text(-1.05,0.05,'X*',fontsize = 15)
-    plt.text(-1.05,1.05,'M*',fontsize = 15)
-    currentAxis = plt.gca()
-    currentAxis.add_patch( Rectangle((-1,-1),2,2,  facecolor="gray" ,ec='none', alpha =.3))
-
-    plt.axis('square')
-    plt.xlim((-1.2, 1.2))
-    plt.ylim((-1.2, 1.2))
+    

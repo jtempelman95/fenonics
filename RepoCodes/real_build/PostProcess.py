@@ -134,20 +134,19 @@ def plotbands(bands: np.array = None,  HSpts: list = None, HS_labels: list = Non
     if HS_labels == None:
         HS_labels = ['Γ', 'X', 'M', 'Γ']
     
+    if HSpts == None:
+        # Setting the high symmetr points
+        P1 = [0,0]                      # Gamma 
+        P2 = [np.pi/a_len, 0]           # X
+        P3 = [np.pi/a_len, np.pi/a_len] # K
+        HSpts = [P1,P2,P3,P1]
+        HSstr = ['Γ', 'X', 'M', 'Γ']
+    
     # Get number of solutions inbetween HS points
     nsol = bands.shape[0]
+    nvec = bands.shape[1]
     nvec_per_HS = int(round(nsol/len(HS_labels)+1))
-
-    xx = []
-    start = 0
-    for k in range(len(HSpts)-1):
-        xx.append(np.linspace(start,start+1-1/nvec_per_HS ,nvec_per_HS))
-        start+=1 
-    xx = np.array(xx)
-    d1,d2 = xx.shape[0],xx.shape[1]
-    xx = xx.reshape(d2*d1,)
-    nvec = np.array(bands).shape[1]
-
+    xx  = np.linspace(0,1,nsol)
     
     # PLOT THE DISPERSION BANDS
     for n in range(nvec):
@@ -276,14 +275,9 @@ def plotmesh(mesh,ct):
     return plotter
 
 
-def plotvecs(
-        plotter : pyvista.Plotter,
-        V: dolfinx.fem.FunctionSpace,
-        mpc: dolfinx_mpc.MultiPointConstraint,
-        evecs: np.array,
-        eval_number: int, 
-        evec_number: int
-):
+def plotvecs(plotter : pyvista.Plotter, V: dolfinx.fem.FunctionSpace,
+        mpc: dolfinx_mpc.MultiPointConstraint, evecs: np.array, eval_number: int, 
+        evec_number: int):
         '''Plotting the eigenvectors of the dispersion problem
         
         inputs:
@@ -321,7 +315,6 @@ def plotvecs(
         u = dolfinx.fem.Function(V)
         cells, types, x = plot.create_vtk_mesh(V)
         grid = pyvista.UnstructuredGrid(cells, types, x)
-        # u.vector.setArray(vr.vector[:]/np.max(vr.vector[:])*np.sign(vr.vector[10]))
         u.vector.setArray(vr.vector[:])
         grid.point_data["u"] = u.x.array
         edges = grid.extract_all_edges()

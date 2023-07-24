@@ -527,8 +527,8 @@ if __name__ == '__main__':
     # Solve the dispersion problem
     evals_disp, evec_all, mpc, KX, KY = solve_bands(HSpts  = HSpts, n_wavevector  = n_wavevector,  
                         n_solutions = n_solutions, a_len = a_len,
-                         c = c,  rho = rho,  fspace = 'CG',  mesh = mesh, ct = ct
-    )
+                         c = c,  rho = rho,  fspace = 'CG',  
+                         mesh = mesh, ct = ct)
     
     bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(np.array(evals_disp))
     HS_labels = ['$\Gamma$', 'X', 'M',

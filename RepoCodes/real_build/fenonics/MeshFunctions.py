@@ -33,27 +33,16 @@
 
 
 #%%
-# ------------------
-# Dependencies
-# ------------------
 import  gmsh
-import  sys
 import  numpy as np
-import  matplotlib.pyplot as plt
-import  timeit
-import  matplotlib.pyplot as plt
-from    mpi4py import MPI
-from    dolfinx.io import gmshio
-from    mpi4py import MPI
-import  pyvista
-pyvista.start_xvfb()
-from dolfinx.plot import create_vtk_mesh
 
-#%% function
-
-
-def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refinement_dist, isrefined = True ,cut = True):
-    """
+def get_mesh_SquareSpline(a: float = 1., da: float = None,
+                          r: np.array = None, Nquads: float = 8 ,
+                          offset: float = 0, meshalg: int = 6, 
+                          refinement_level: float = 5, refinement_dist: float = None, 
+                          isrefined: bool = True , cut: bool = True, symmetry = 'rotated'):
+    """ Generating a mesh with an internal void or inclusion
+    
     arguments
         isrefined           -   decide to refine around interior edges
         cut                 -   Decide of interor geometry is cut-out or inclusion
@@ -64,7 +53,14 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
         offset              - ofset angle
         meshalg             - wich algorithm to use in gmsh
         refinement_level    - how much denser refined geomtety is
+        
+    outputs
+        gsmh object 
     """
+    
+    if da == None: da = a/15
+    if refinement_dist == None: refinement_dist = a/8
+    
     gmsh.initialize()
     gmsh.clear()
     # gmsh.option.setNumber("Geometry.Tolerance", 1e-6/4.48401)
@@ -97,22 +93,27 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
     yspl = []
     idx = 0
     if Nquads % 2 == 0:
-        shift = 2*np.pi/len(r)/Nquads/2
+        if symmetry == 'mirror':
+            shift = 2*np.pi/len(r)/Nquads/2
+        else:
+            shift = 0*np.pi/len(r)/Nquads/8
     else:
         shift = 0
     for quad in range(Nquads):
         for k in range(len(r)):
-            xc = a/2 + r[k]/2   * np.cos( 2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads+shift       + offset)
-            yc = a/2+ r[k]/2    * np.sin( 2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads+shift         + offset)
+            xc = a/2 + r[k]/2 * np.cos( 
+                        2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads+shift       
+                        + offset)
+            yc = a/2+ r[k]/2 *np.sin( 
+                        2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads+shift   
+                        + offset)
             yspl.append(yc)
             xspl.append(xc)
             idx+=1
             # print(2*k*np.pi/len(r)/Nquads + 2*quad*np.pi/Nquads+shift)
         if Nquads % 2 == 0:
-            r =  np.flip(r)
+            if symmetry == 'mirror':  r =  np.flip(r)
     
-    # xspl.append(xspl[0])
-    # yspl.append(yspl[0])
     splinepoints = [ gmsh.model.occ.addPoint(xspl[v], yspl[v],0 ) for v in range(len(xspl))]
     splinepoints.append(splinepoints[0])
     spline1 = gmsh.model.occ.add_bspline(splinepoints ,tag = 125)
@@ -122,12 +123,9 @@ def get_mesh_SquareSpline(a,da,r,Nquads,offset,meshalg,refinement_level,refineme
     spline_boundary = gmsh.model.occ.addCurveLoop([spline1],  tag = 100)
     spline_surf = gmsh.model.occ.addPlaneSurface( [spline_boundary] , tag = 100) 
     gmsh.model.occ.synchronize()
-    
-    
-    
 
     
-    if cut == True:
+    if cut:
         # Fuse the spline surface to the unit cell
         all_surfaces = [(2,spline_surf)]
         out, whole_domain = gmsh.model.occ.cut([(2, cell_surface)], all_surfaces)
@@ -271,8 +269,7 @@ def GetSpline(gmsh):
     return SplinePtDat, SplineDat
 
 
-#%%
-# Test
+#%% Test
 """
 Test the functions out here
 """
@@ -280,110 +277,36 @@ Test the functions out here
 if __name__ == '__main__':
 
     # ################################################## #
-    # Imports for finite element modeling                #
+    # Testing the mesh functions                #
     # ################################################## #
     from mpi4py import MPI
-    import dolfinx_mpc
-    import dolfinx
-    from dolfinx.fem    import Function, FunctionSpace, VectorFunctionSpace
-    from dolfinx.mesh   import create_unit_square 
-    from dolfinx.mesh   import create_rectangle
-    from dolfinx.fem    import form
-    from dolfinx.fem.petsc import assemble_matrix
-    from dolfinx    import plot
-    from dolfinx.io import gmshio
-    from mpi4py     import MPI
-    from dolfinx    import fem
-    from ufl        import TrialFunction, TestFunction, grad, dx, dot, nabla_div, Identity, nabla_grad, inner, sym
-    from petsc4py.PETSc import ScalarType
-    from slepc4py   import SLEPc
-    from petsc4py   import PETSc
-    from typing     import List
-    import scipy.sparse
-    from scipy.sparse.linalg import eigsh
-    from scipy import sparse
-    # ################################################## #
-    # Imports for plotting                               #
-    # ################################################## #
     import matplotlib.pyplot as plt
-    from dolfinx.io import gmshio
     import pyvista
     pyvista.start_xvfb()
-    # ################################################## #
-    # Imports for the meshing                            #
-    # ################################################## #
     import gmsh
+    from dolfinx.fem        import FunctionSpace, Function
     from dolfinx.plot       import create_vtk_mesh
     from dolfinx.io         import XDMFFile
     from dolfinx.io.gmshio  import model_to_mesh
 
-    # =================================
-    # Get latin hypercube sampling
-    # =================================
-    from scipy.stats import qmc
-    LHS_Seed    = 1
-    sampler     = qmc.LatinHypercube(d=3,seed =  LHS_Seed)
-    Nsamp       = 250
-    sample      = sampler.random(n=Nsamp)
-    sidx        = 6
-
-    ######################################################################
-    #                      Domain  Inputs                                #
-    ######################################################################
-    #   a_len               Charecterstic unit cell length (primitive basis)
-    #   r                   vector of points to fit spline to
-    #   Nquads              Number of quadrants to repeat spline through (radially)
-    #   offset              Offset angle for inclusion geometry
-    #   iscut               Choose if inclusion is void or an added domain
-    #   dvar                Design variable to probe 
-    ######################################################################
-
-
+ 
+    # Inputs to meshing program
     a_len       =   .1
-    dvar        =   1/2       
-    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
-    # r           =   np.array([1,np.random.rand(1)[0],.3])*a_len*.95
-    # r           =   sample[sidx,:]*a_len*.9
-    dvec        =   r
     offset      =   0*np.pi
-    design_vec  =   np.concatenate( (r/a_len, [offset] ))
     Nquads      =   8
-
-    # Set file name to save figures based on input vector
-    name = 'dvec'
-    for k in range(len(design_vec)):
-        name += '_' + str(int(100*np.round(design_vec[k],2)))
-
-
-    ######################################################################
-    #                      Mesh Inputs                                   #
-    ######################################################################
-    #   refinement_level    Choose ratio of how dense mesh gets around refinement field 
-    #   refinement_dist     Maximum distance of refinement field from refined edges
-    #   isrefined           Choose whether or not to refine mesh around internal edges
-    #   meshalg             Meshing algorithm for gmsh to use
-    #   da                  Nominal Mesh Density
-    ######################################################################
-    da                  =   a_len/13
+    da                  =   a_len/25
     meshalg             =   6
     refinement_level    =   6
     refinement_dist     =   a_len/10
-
-    ######################################################################
-    #                  Generate a mesh with one inclsuion                #
-    ######################################################################
     meshalg                 = 6
-    
-    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
-    # gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a_len ,da,r,Nquads,offset,meshalg,
-    #                                                 refinement_level,refinement_dist,
-    #                                                 isrefined = True, cut = True)
-    
-    
-    r           =   np.array([1,dvar,.2,.8,.3])*a_len*.195
-    gmsh.model, xpt, ypt =   get_mesh_SquareMultiSpline(a_len ,da,np.array([r,r,r,r]),Nquads,offset,meshalg,
-                                                    refinement_level,refinement_dist,
-                                                    isrefined = True, cut = True)
+
+    r           =   np.array([1,.2,.9,.2])*a_len*.95
+    gmsh.model, xpt, ypt    = get_mesh_SquareSpline(a = a_len, 
+                                                    da = da,
+                                                    r = r,
+                                                    Nquads = Nquads,
+                                                    refinement_level= 3,
+                                                    symmetry= 'rotated')
 
     #################################################################
     #            Import to dolfinx and save as xdmf                 #
@@ -420,7 +343,6 @@ if __name__ == '__main__':
     y_int = node_interior[1::3]
     x_int = np.concatenate([x_int,[x_int[0]]])
     y_int = np.concatenate([y_int,[y_int[0]]])
-    # plt.plot(x_int,y_int,'-')
     xi = x_int - a_len/2
     yi = y_int - a_len/2
     plt.plot(np.array(xpt)- a_len/2, np.array(ypt)- a_len/2,'.')

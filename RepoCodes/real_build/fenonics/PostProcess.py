@@ -275,9 +275,9 @@ def plotmesh(mesh,ct):
     return plotter
 
 
-def plotvecs(plotter : pyvista.Plotter, V: dolfinx.fem.FunctionSpace,
-        mpc: dolfinx_mpc.MultiPointConstraint, evecs: np.array, eval_number: int, 
-        evec_number: int):
+def plotvecs(plotter : pyvista.Plotter = None, V: dolfinx.fem.FunctionSpace = None,
+        mpc: dolfinx_mpc.MultiPointConstraint = None, evecs: np.array = None, 
+        eval_number: int = 1, wavevec_number: int = 1, cmap: str = 'bwr', nmap: int = 50):
         '''Plotting the eigenvectors of the dispersion problem
         
         inputs:
@@ -289,7 +289,7 @@ def plotvecs(plotter : pyvista.Plotter, V: dolfinx.fem.FunctionSpace,
                         j Number of Dofs in unit cell 
                         k Number of evals solved per wavenumber
                 eval_number: The eigenvalue number to plot (i)
-                evec_number: The wavevector index to plot (k) 
+                wavevec_number: The wavevector index to plot (k) 
                 
         outputs:
                 plotter:        The plotter object is returned with the eigenvector visual
@@ -300,7 +300,7 @@ def plotvecs(plotter : pyvista.Plotter, V: dolfinx.fem.FunctionSpace,
         
         # Post-processing the -vecs
         data = np.array(evecs)
-        et = data[evec_number,:,eval_number]; 
+        et = data[wavevec_number,:,eval_number]; 
         vr = dolfinx.fem.Function(V)
         vi = dolfinx.fem.Function(V)
         vr.vector[:] = np.real(et)# / np.max( np.real(et))
@@ -311,7 +311,7 @@ def plotvecs(plotter : pyvista.Plotter, V: dolfinx.fem.FunctionSpace,
         mpc.backsubstitution(vi.vector)
 
         # Plotting eigenvectors with pyvista
-        mycmap = plt.cm.get_cmap('bwr', 50)
+        mycmap = plt.cm.get_cmap('cmap', nmap)
         u = dolfinx.fem.Function(V)
         cells, types, x = plot.create_vtk_mesh(V)
         grid = pyvista.UnstructuredGrid(cells, types, x)

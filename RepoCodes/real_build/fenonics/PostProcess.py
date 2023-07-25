@@ -13,8 +13,8 @@ from dolfinx    import plot
 #################################################
  
 def getbands(bands):
-    '''
-        Getting the band-gaps from a dispersion diagram
+    ''' Getting the band-gaps from a dispersion diagram
+    
         input:
             bands - an np array storing eigensolutions across wavevectors 
             

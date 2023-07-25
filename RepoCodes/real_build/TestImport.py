@@ -1,5 +1,3 @@
-
-
 # Test fenonics import
 #%%
 # ################################################## #
@@ -82,8 +80,8 @@ HS_labels = ['$\Gamma$', 'X', 'M',
                 '$\Gamma$', 'Y', 'M',
                 '$\Gamma$', 'X*', 'M*',
                 '$\Gamma$', 'Y*', 'M*',
-                '$\Gamma$']
-
+                '$\Gamma$'
+            ]
 
 plt = fenonics.plotbands(np.array(evals_disp),figsize = (5,5), HSpts = HSpts, HS_labels = HS_labels, a_len = a_len,
                     KX = KX, KY = KY, inset = True)

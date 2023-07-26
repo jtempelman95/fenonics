@@ -55,6 +55,7 @@ import numpy as np
 import typing
 import ufl
 
+from dolfinx.fem import Constant
 from petsc4py.PETSc import ScalarType
 from ufl import dot, dx, inner, sym, grad, Argument, Coefficient, Form
 
@@ -63,11 +64,18 @@ from ufl import dot, dx, inner, sym, grad, Argument, Coefficient, Form
 
 
 class BlochProblemType(enum.IntEnum):
-    """Types of Bloch eigenproblems."""
+    """Types of Bloch eigenproblems.
+
+    DIRECT - k(ω) formulation
+    INDIRECT - ω(k) formulation, with Floquet-periodic $u(x)$ as eigenvector
+    INDIRECT_TRANSFORMED - ω(k) formulation, periodic $\\hat{u}(x)$ as eigenvector
+    """
 
     DIRECT: 1
     INDIRECT: 2
     INDIRECT_TRANSFORMED: 3
+
+    # TODO: check if this conforms to the standard nomenclature in phononics literature
 
 
 # Functions
@@ -152,7 +160,13 @@ def stress(
         return modulus[ii, jj, kk, ll] * eps[kk, ll]
 
 
-def mass_form(u_tr: Argument, u_test: Argument, density: Coefficient) -> Form:
+def mass_form(
+    problem_type: BlochProblemType,
+    u_tr: Argument,
+    u_test: Argument,
+    density: Coefficient,
+    **kwargs,
+) -> Form:
     """Create the mass bilinear form for the Bloch wave problem.
 
     The problem type is detected from the shape of the trial and test functions. Scalar
@@ -162,9 +176,10 @@ def mass_form(u_tr: Argument, u_test: Argument, density: Coefficient) -> Form:
 
     Parameters
     ----------
-    u_tr - trial function of the problem
-    u_test - test function of the problem
-    density - scalar or tensor function representing the material density
+    - `problem_type` type of problem formulation
+    - `u_tr` trial function of the problem
+    - `u_test` test function of the problem
+    - `density` scalar or tensor function representing the material density
 
     Returns
     -------
@@ -172,42 +187,55 @@ def mass_form(u_tr: Argument, u_test: Argument, density: Coefficient) -> Form:
         representing the mass matrix
     """
 
-    if len(u_tr.ufl_shape) == 0:
-        # Scalar trial function; create Helmholtz problem
-        return inner(density * u_tr, u_test) * dx
-    elif len(u_tr.ufl_shape) == 1:
-        # Vector trial function; create elasticity problem
-        return inner(dot(density, u_tr), u_test) * dx
+    # TODO: is the mass matrix the same for all three formulations?
+
+    if problem_type == BlochProblemType.DIRECT:
+        if "wave_vec" not in kwargs:
+            raise RuntimeError("`wave_vec` is required for direct problems")
+
+        raise NotImplementedError("Direct formulation not implemented yet.")
+    elif problem_type == BlochProblemType.INDIRECT:
+        raise NotImplementedError(
+            "Untransformed indirect formulation not implemented yet."
+        )
+    elif problem_type == BlochProblemType.INDIRECT_TRANSFORMED:
+        if "wave_vec" not in kwargs:
+            raise RuntimeError(
+                "`wave_vec` is required for transformed indirect problems"
+            )
+
+        if len(u_tr.ufl_shape) == 0:
+            # Scalar trial function; create Helmholtz problem
+            return inner(density * u_tr, u_test) * dx
+        elif len(u_tr.ufl_shape) == 1:
+            # Vector trial function; create elasticity problem
+            return inner(dot(density, u_tr), u_test) * dx
+        else:
+            raise ValueError(f"Unsupported trial function shape: {u_tr.ufl_shape}")
     else:
-        raise ValueError(f"Unsupported trial function shape: {u_tr.ufl_shape}")
+        raise ValueError(f"Unrecognized problem type: {problem_type}")
 
 
-def stiffness_form(
-    u_tr: Argument, u_test: Argument, modulus: Coefficient
-) -> typing.Union[tuple[Form], tuple[Form, Form]]:
-    """Create the stiffness bilinear form for the Bloch wave problem.
+def _stiffness_form_direct(
+    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: Constant
+):
+    # Return the stiffness form for direct formulations
 
-    The problem type is detected from the shape of the trial and test functions. Scalar
-    trial functions trigger a Helmholtz-type problem to be returned, while vector trial
-    functions trigger an elasticity-type problem to be returned. Elasticity problems
-    allow for tensor-valued displacements.
+    raise NotImplementedError("Direct formulation not implemented yet.")
 
-    The PETSc scalar type determines the splitting scheme used. If the scalar type is
-    complex, a single sesquilinear form is returned that incorporates real and imaginary
-    parts. If the scalar type is real, two bilinear forms are returned, one each for the
-    real and imaginary parts of the sesquilinear form.
 
-    Parameters
-    ----------
-    - `u_tr` trial function of the problem
-    - `u_test` test function of the problem
-    - `modulus` scalar or matrix function representing the material modulus
+def _stiffness_form_indirect(
+    u_tr: Argument, u_test: Argument, modulus: Coefficient, **kwargs
+):
+    # Return the stiffness form for untransformed indirect formulations
 
-    Returns
-    -------
-    a tuple containing either a single sesquilinear form or two bilinear forms
-    representing the mass matrix
-    """
+    raise NotImplementedError("Untransformed indirect formulation not implemented yet.")
+
+
+def _stiffness_form_indirect_transformed(
+    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: Constant
+):
+    # Return the stiffness form for transformed indirect formulations
 
     if len(u_tr.ufl_shape) == 0:
         # Scalar trial function; create Helmholtz problem
@@ -218,20 +246,89 @@ def stiffness_form(
                 E**2
                 * (
                     inner(grad(u_tr), grad(u_test))
-                    + u_tr * u_test * (kx**2 + ky**2)
+                    + u_tr * u_test * inner(wave_vec, wave_vec)
                 )
                 * dx
             )
             imag_form = (
                 E**2
-                * (u_tr * inner(grad(u_test), K) - u_test * inner(grad(u_tr), K))
+                * (
+                    u_tr * inner(grad(u_test), wave_vec)
+                    - u_test * inner(grad(u_tr), wave_vec)
+                )
                 * dx
             )
             return (real_form, imag_form)
     elif len(u_tr.ufl_shape) == 1:
+        # Vector trial function; create elasticity problem
         if ScalarType == np.complex128:
             return (inner(stress(modulus, u_tr), strain(u_test)) * dx,)
         else:
             real_form = inner(stress(modulus, u_tr), strain(u_test)) * dx
             imag_form = 0
             return (real_form, imag_form)
+    else:
+        raise ValueError(f"Unsupported trial function shape: {u_tr.ufl_shape}")
+
+
+def stiffness_form(
+    problem_type: BlochProblemType,
+    u_tr: Argument,
+    u_test: Argument,
+    modulus: Coefficient,
+    **kwargs,
+) -> typing.Union[tuple[Form], tuple[Form, Form]]:
+    """Create the stiffness bilinear form for the Bloch wave problem.
+
+    The problem type is detected from the shape of the trial function. (It is assumed
+    that the test function will have the same shape, and will cause an error if it does
+    not.) Scalar trial functions trigger a Helmholtz-type problem to be returned, and
+    the modulus can be either a scalar or a second-order tensor in this case. Vector
+    trial functions trigger an elasticity-type problem to be returned, and the modulus
+    must be either a fourth-order tensor or a Voigt stiffness matrix.
+
+    The PETSc scalar type determines the splitting scheme used. If the scalar type is
+    complex, a single sesquilinear form is returned that incorporates real and imaginary
+    parts. If the scalar type is real, two bilinear forms are returned, one each for the
+    real and imaginary parts of the sesquilinear form.
+
+    Additional keyword arguments may be required, depending on `problem_type` (see
+    below).
+
+    Parameters
+    ----------
+    - `u_tr` trial function of the problem
+    - `u_test` test function of the problem
+    - `modulus` scalar or matrix function representing the material modulus
+
+    Required keyword arguments
+    --------------------------
+    - `wave_vec: dolfinx.fem.Constant` wavevector (required for
+        `problem_type == BlochProblemType.DIRECT` and
+        `problem_type == BlochProblemType.INDIRECT_TRANSFORMED)
+
+    Returns
+    -------
+    a tuple containing either a single sesquilinear form or two bilinear forms
+    representing the mass matrix
+    """
+
+    # Check problem type and keyword args, then dispatch to the required implementation
+    if problem_type == BlochProblemType.DIRECT:
+        if "wave_vec" not in kwargs:
+            raise RuntimeError("`wave_vec` is required for direct problems")
+        else:
+            return _stiffness_form_direct(u_tr, u_test, modulus, **kwargs)
+    elif problem_type == BlochProblemType.INDIRECT:
+        return _stiffness_form_indirect(u_tr, u_test, modulus)
+    elif problem_type == BlochProblemType.INDIRECT_TRANSFORMED:
+        if "wave_vec" not in kwargs:
+            raise RuntimeError(
+                "`wave_vec` is required for transformed indirect problems"
+            )
+        else:
+            return _stiffness_form_indirect_transformed(
+                u_tr, u_test, modulus, kwargs["wave_vec"]
+            )
+    else:
+        raise ValueError(f"Unrecognized problem type: {problem_type}")

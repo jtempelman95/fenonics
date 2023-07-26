@@ -61,13 +61,21 @@ from petsc4py.PETSc import ScalarType
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
 from slepc4py import SLEPc
-from ufl import dot, dx, grad, inner, Argument, TestFunction, TrialFunction
+from ufl import (
+    dot,
+    dx,
+    grad,
+    inner,
+    Argument,
+    TestFunction,
+    TrialFunction,
+)
 
 
 def dirichlet_and_periodic_bcs(
     domain: dolfinx.mesh.Mesh,
     functionspace: fem.FunctionSpace,
-    bc_type: list[str] = ["peroidic", "periodic"],
+    bc_type: list[str] = ["periodic", "periodic"],
     dbc_value: ScalarType = 0,
 ):
     """Create periodic and/or Dirichlet boundary conditions for a square domain.
@@ -234,8 +242,8 @@ def petsc_to_csr_complex(*args):
     parameters
     -----------
     args:
-        args[0] - assembled Petsc matrix containg real part of complex matrix
-        args[1] - assembled Petsc matrix containg imaginary part of complex matrix
+        args[0] - assembled Petsc matrix containing real part of complex matrix
+        args[1] - assembled Petsc matrix containing imaginary part of complex matrix
 
     returns
     ---------

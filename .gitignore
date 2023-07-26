@@ -79,3 +79,8 @@ iOSInjectionProject/
 
 # Ignore Python cache
 **/__pycache__/**
+
+# Ignore LaTeX auxiliary files
+weak_forms/*.aux
+weak_forms/*.log
+weak_forms/*.synctex.*

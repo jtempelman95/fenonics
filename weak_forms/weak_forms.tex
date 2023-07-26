@@ -1,0 +1,187 @@
+\documentclass{article}
+
+\usepackage[left=1in, right=1in]{geometry}
+\usepackage{amsmath,amssymb}
+
+\title{Weak forms for Bloch eigenproblems}
+\author{Connor D. Pierce}
+\date{\today}
+
+\newcommand{\imag}{\iota}
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+\newcommand{\x}{x}
+\newcommand{\vecx}{\vect{\x}}
+\newcommand{\wavenum}{\kappa}
+\newcommand{\wavevec}{\vect{\wavenum}}
+\newcommand{\bloch}{e^{-\imag \wavevec \cdot \vecx}}
+\newcommand{\blochcomp}[1]{e^{-\imag \wavenum_{#1} \x_{#1}}}
+\newcommand{\kernel}[1]{\tilde{#1}}
+
+
+\begin{document}
+\maketitle
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Notation}
+
+In this document, the following notation is observed:
+
+\begin{description}
+    \item[$\omega$] temporal frequency
+    \item[$\wavenum$] wave number (spatial frequency)
+    \item[$\imag$] (``iota'') the imaginary unit
+    \item[$i,j,k,l,m$] subscripts indicating vector/tensor components
+\end{description}
+
+Bold symbols indicate vectors, e.g. \(\vecx\) is the position vector with components \(\x_{i}\).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Direct ($\wavevec(\omega)$)}
+TODO: write me
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Indirect ($\omega(\wavevec)$), untransformed}
+(Eigenfunction: $u(\vecx)$, Floquet periodic)
+
+TODO: write me
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Indirect ($\omega(\wavevec)$), with Bloch transformation}
+(Eigenfunction: $\kernel{u}(\vecx)$, periodic)
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Scalar Helmholtz equation}
+
+Eigenproblem:
+
+\begin{align}
+    %
+    \nabla \cdot \left(
+        \boldsymbol{E}(\vecx) \nabla w(\vecx, t)
+    \right) =& \rho(\vecx) \ddot{w}(\vecx, t) \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) w_{,j}(\vecx, t)
+    \right)_{,i} =& \rho(\vecx) \ddot{w}(\vecx, t) \nonumber \\
+    %
+    w(\vecx, t) =& u(\vecx) e^{-\imag \omega t} \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) u_{,j}(\vecx)
+    \right)_{,i} e^{-\imag \omega t} =& -\omega^2 \rho(\vecx) u(\vecx) e^{
+        -\imag \omega t
+    } \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) u_{,j}(\vecx)
+    \right)_{,i} =& -\omega^2 \rho(\vecx) u(\vecx) \\
+\end{align}
+
+Bloch transformation:
+
+\begin{align}
+    %
+    u(\vecx) &= \kernel{u}(\vecx) \bloch \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[\kernel{u}(\vecx) \blochcomp{k}\right]_{,j}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            + \kernel{u}(\vecx) (\blochcomp{k})_{,j}
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            + \kernel{u}(\vecx) \blochcomp{m} (-\imag \wavenum_{k} \delta_{kj})
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            - \imag \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+        - \imag E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+    \right)_{,i}
+    - \imag \left(
+        E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        \left[
+            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+        \right]_{,i} \blochcomp{k}
+        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+    \right)& \nonumber \\
+    - \imag \left(
+        \left[
+            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
+        \right]_{,i} \blochcomp{k}
+        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        \blochcomp{k}
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        \left[
+            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+        \right]_{,i}
+        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \right)& \nonumber \\
+    - \imag \left(
+        \left[
+            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
+        \right]_{,i}
+        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+
+Transformed strong form:
+
+\begin{align}
+    \left(
+        \left[ E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \right]_{,i}
+        + \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \right) - \imag \left(
+        \left[
+            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
+        \right]_{,i}
+        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+
+
+\end{document}

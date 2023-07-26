@@ -48,7 +48,6 @@
 # General
 import numpy as np
 import time
-import warnings
 
 # Finite element modeling
 import dolfinx
@@ -401,14 +400,14 @@ def solve_bands(
     mpc         - The multi-point constraint on the mesh
     """
 
-    if HSpts == None:
+    if HSpts is None:
         # Setting the high symmetr points
         P1 = [0, 0]  # Gamma
         P2 = [np.pi / a_len, 0]  # X
         P3 = [np.pi / a_len, np.pi / a_len]  # K
         HSpts = [P1, P2, P3, P1]
         HSstr = ["Γ", "X", "M", "Γ"]
-    if HSstr == None:
+    if HSstr is None:
         HSstr = np.linspace(0, len(HSpts), len(HSpts) + 1)
 
     # Get Material Properties
@@ -469,14 +468,12 @@ def solve_bands(
     return evals_disp, evecs_disp, mpc, KX, KY
 
 
-##########################################################################################
+########################################################################################
 #                                   Testing the code
-##########################################################################################
+########################################################################################
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
-    import time
-    import os
     from dolfinx.io.gmshio import model_to_mesh
     import gmsh
     from PostProcess import *
@@ -554,19 +551,19 @@ if __name__ == "__main__":
 
     bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(np.array(evals_disp))
     HS_labels = [
-        "$\Gamma$",
+        r"$\Gamma$",
         "X",
         "M",
-        "$\Gamma$",
+        r"$\Gamma$",
         "Y",
         "M",
-        "$\Gamma$",
+        r"$\Gamma$",
         "X*",
         "M*",
-        "$\Gamma$",
+        r"$\Gamma$",
         "Y*",
         "M*",
-        "$\Gamma$",
+        r"$\Gamma$",
     ]
 
     plt = plotbands(
@@ -580,5 +577,3 @@ if __name__ == "__main__":
         inset=True,
     )
     plt.show()
-
-    from matplotlib.patches import Rectangle

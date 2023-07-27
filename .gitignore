@@ -80,7 +80,8 @@ iOSInjectionProject/
 # Ignore Python cache
 **/__pycache__/**
 
-# Ignore LaTeX auxiliary files
+# Ignore LaTeX auxiliary files, but include compiled pdf
 weak_forms/*.aux
 weak_forms/*.log
 weak_forms/*.synctex.*
+!weak_forms/*.pdf

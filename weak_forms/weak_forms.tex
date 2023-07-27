@@ -7,6 +7,9 @@
 \author{Connor D. Pierce}
 \date{\today}
 
+%\setlength{\parindent}{0pt}
+%\setlength{\parskip}{0.5\baselineskip}
+
 \newcommand{\imag}{\iota}
 \newcommand{\vect}[1]{\boldsymbol{#1}}
 \newcommand{\x}{x}
@@ -26,39 +29,43 @@
 \section{Notation}
 
 In this document, the following notation is observed:
-
+%
 \begin{description}
     \item[$\omega$] temporal frequency
     \item[$\wavenum$] wave number (spatial frequency)
     \item[$\imag$] (``iota'') the imaginary unit
     \item[$i,j,k,l,m$] subscripts indicating vector/tensor components
 \end{description}
-
+%
 Bold symbols indicate vectors, e.g. \(\vecx\) is the position vector with components \(\x_{i}\).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Direct ($\wavevec(\omega)$)}
-TODO: write me
+
+In the direct formulation (see Collet et al., 2011), we prescribe the temporal frequency \(\omega\) and wave direction \(\vect{\phi}\) and compute the wavevector magnitudes as the eigenvalues. The periodic functions \(\kernel{u}(\vecx)\) are the eigenfunctions.
+
+\noindent TODO: write me
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Indirect ($\omega(\wavevec)$), untransformed}
-(Eigenfunction: $u(\vecx)$, Floquet periodic)
 
-TODO: write me
+In the untransformed indirect formulation, we prescribe the wavevector through Floquet-periodic boundary conditions and solve for the temporal frequencies \(\omega\) as eigenvalues. The Floquet-periodic displacement fields \(u(\vecx)\) are the corresponding eigenfunctions.
+
+\noindent TODO: write me
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Indirect ($\omega(\wavevec)$), with Bloch transformation}
-(Eigenfunction: $\kernel{u}(\vecx)$, periodic)
+In the transformed indirect formulation, the Bloch ansatz \(u(\vecx) = \kernel{u}(\vecx) \bloch\) is used to transform the equations of motion in terms of the periodic function \(\kernel{u}(\vecx)\). The wavevector \(\wavevec\) is prescribed through additional terms that arise in the strong form of the problem, and the temporal frequency \(\omega\) is solved as the eigenvalue. The periodic functions \(\kernel{u}(\vecx)\) are the corresponding eigenfunctions.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Scalar Helmholtz equation}
 
 Eigenproblem:
-
+%
 \begin{align}
     %
     \nabla \cdot \left(
@@ -81,9 +88,9 @@ Eigenproblem:
         E_{ij}(\vecx) u_{,j}(\vecx)
     \right)_{,i} =& -\omega^2 \rho(\vecx) u(\vecx) \\
 \end{align}
-
+%
 Bloch transformation:
-
+%
 \begin{align}
     %
     u(\vecx) &= \kernel{u}(\vecx) \bloch \\
@@ -168,18 +175,61 @@ Bloch transformation:
     -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
 \end{align}
 
-Transformed strong form:
+\subsubsection{Transformed strong forms}
 
+General case:
+%
 \begin{align}
     \left(
         \left[ E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \right]_{,i}
-        + \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
     \right) - \imag \left(
         \left[
             E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
         \right]_{,i}
         + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
     \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+%
+Isotropic modulus, i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
+%
+\begin{align}
+    \left(
+        \left[ E(\vecx) \kernel{u}_{,i}(\vecx) \right]_{,i}
+        - \wavenum_{i} E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
+    \right) - \imag \left(
+        \left[
+            E(\vecx) \kappa_{i} \kernel{u}(\vecx)
+        \right]_{,i}
+        + \wavenum_{i} E(\vecx) \kernel{u}_{,i}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+%
+Piecewise constant modulus, i.e. \(E_{ij,k}(\vecx) = 0\):
+%
+\begin{align}
+    \Bigl(
+        E_{ij}(\vecx) \kernel{u}_{,ji}(\vecx)
+        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \Bigr) - \imag \Bigl(
+        E_{ij}(\vecx) \kappa_{j} \kernel{u}_{,i}(\vecx)
+        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \Bigr) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+%
+%
+Piecewise constant isotropic modulus:
+%
+\begin{align}
+    E(\vecx) \Bigl(
+        \kernel{u}_{,ii}(\vecx)
+        - \wavenum_{i} \wavenum_{i} \kernel{u}(\vecx)
+    \Bigr) - \imag E(\vecx) \Bigl(
+        \kappa_{i} \kernel{u}_{,i}(\vecx) + \wavenum_{i} \kernel{u}_{,i}(\vecx)
+    \Bigr) &=
     -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
 \end{align}
 

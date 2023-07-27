@@ -241,13 +241,16 @@ The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.stro
     } - \int_{\Omega} {
         \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
     } + \imag \int_{\Omega} {
-        E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i} \dx
-    } - \imag \int_{\Omega} {
-        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+        \left(
+            \kernel{u} \bar{v}_{,i} E_{ij} \wavenum_{j}
+            - \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
+        \right) \dx
     } &=
     -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
     \label{eq:it.scalar.weak.general}
 \end{align}
+%
+When $\vect{E}$ is real and symmetric, (\ref{eq:it.scalar.weak.general}) is Hermitian and the eigenvalues are real, as expected.
 
 \paragraph{Isotropic modulus} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\)
 %

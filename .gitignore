@@ -84,4 +84,5 @@ iOSInjectionProject/
 weak_forms/*.aux
 weak_forms/*.log
 weak_forms/*.synctex.*
+weak_forms/*.toc
 !weak_forms/*.pdf

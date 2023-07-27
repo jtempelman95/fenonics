@@ -1,0 +1,268 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Derivation of transformed strong form}
+\label{sec:it.scalar.strong-derivation}
+
+Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\ref{eq:prob.bloch-ansatz}):
+%
+\begin{align}
+    \left(
+        E_{ij}(\vecx) \left[\kernel{u}(\vecx) \blochcomp{k}\right]_{,j}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            + \kernel{u}(\vecx) (\blochcomp{k})_{,j}
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            + \kernel{u}(\vecx) \blochcomp{m} (-\imag \wavenum_{k} \delta_{kj})
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \left[
+            \kernel{u}_{,j}(\vecx) \blochcomp{k}
+            - \imag \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+        \right]
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+        - \imag E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+    \right)_{,i}
+    - \imag \left(
+        E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
+    \right)_{,i} &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        \left[
+            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+        \right]_{,i} \blochcomp{k}
+        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
+    \right)& \nonumber \\
+    - \imag \left(
+        \left[
+            E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        \right]_{,i} \blochcomp{k}
+        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        \blochcomp{k}
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
+    \nonumber \\
+    %
+    \left(
+        \left[
+            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+        \right]_{,i}
+        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \right)& \nonumber \\
+    - \imag \left(
+        \left[
+            E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        \right]_{,i}
+        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+\end{align}
+
+\subsubsection{Transformed strong forms} \label{sec:it.scalar.strong}
+
+\paragraph{General case}
+%
+\begin{align}
+    \left(
+        \left[ E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \right]_{,i}
+        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \right) - \imag \left(
+        \left[
+            E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+        \right]_{,i}
+        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.general}
+\end{align}
+
+\paragraph{Isotropic modulus} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
+%
+\begin{align}
+    \left(
+        \left[ E(\vecx) \kernel{u}_{,i}(\vecx) \right]_{,i}
+        - \wavenum_{i} E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
+    \right) - \imag \left(
+        \left[
+            E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
+        \right]_{,i}
+        + \wavenum_{i} E(\vecx) \kernel{u}_{,i}(\vecx)
+    \right) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.iso}
+\end{align}
+
+\paragraph{Piecewise constant modulus} i.e. \(E_{ij,k}(\vecx) = 0\):
+%
+\begin{align}
+    \Bigl(
+        E_{ij}(\vecx) \kernel{u}_{,ji}(\vecx)
+        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
+    \Bigr) - \imag \Bigl(
+        E_{ij}(\vecx) \wavenum_{j} \kernel{u}_{,i}(\vecx)
+        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
+    \Bigr) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.pc}
+\end{align}
+
+\paragraph{Piecewise constant isotropic modulus}
+%
+\begin{align}
+    E(\vecx) \Bigl(
+        \kernel{u}_{,ii}(\vecx)
+        - \wavenum_{i} \wavenum_{i} \kernel{u}(\vecx)
+    \Bigr) - \imag E(\vecx) \Bigl(
+        \wavenum_{i} \kernel{u}_{,i}(\vecx) + \wavenum_{i} \kernel{u}_{,i}(\vecx)
+    \Bigr) &=
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.pc-iso}
+\end{align}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Derivation of weak forms} \label{sec:it.scalar.weak-derivation}
+
+The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.strong.general}) with the complex conjugate \(\bar{v}\) of a test function \(v\) and integrating over the unit cell. The test function is periodic on the unit cell. We derive the weak form for the general case first, then specialize it to the other three cases (\ref{eq:it.scalar.strong.iso}-\ref{eq:it.scalar.strong.pc-iso}). For conciseness, we omit the function notation ``\((\vecx)\)'', but it is to be understood that the trial and test functions \(\kernel{u}\) and \(v\), as well as the modulus \(E_{ij}\) and density \(\rho\), are functions of position.
+
+\paragraph{General case}
+%
+\begin{align}
+    \int_{\Omega} {
+        \left(
+            \left[ E_{ij} \kernel{u}_{,j} \right]_{,i}
+            - \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u}
+        \right) \bar{v} \dx
+    } - \imag \int_{\Omega} {
+        \left(
+            \left[
+                E_{ij} \wavenum_{j} \kernel{u}
+            \right]_{,i}
+            + \wavenum_{i} E_{ij} \kernel{u}_{,j}
+        \right) \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} {
+        \rho \kernel{u} \bar{v} \dx
+    } \nonumber \\
+    %
+    \int_{\Omega} {
+        \left[ E_{ij} \kernel{u}_{,j} \right]_{,i} \bar{v} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } - \imag \int_{\Omega} {
+        \left[ E_{ij} \wavenum_{j} \kernel{u} \right]_{,i} \bar{v} \dx
+    } - \imag \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} {
+        \rho \kernel{u} \bar{v} \dx
+    } \nonumber \\
+    %
+    \int_{\Omega} {
+        \left(
+            \left[ E_{ij} \kernel{u}_{,j} \bar{v} \right]_{,i}
+            - E_{ij} \kernel{u}_{,j} \bar{v}_{,i}
+        \right) \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } & \nonumber \\
+    - \imag \int_{\Omega} {
+        \left(
+        \left[ E_{ij} \wavenum_{j} \kernel{u} \bar{v} \right]_{,i}
+        - E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i}
+        \right) \dx
+    } - \imag \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber \\
+    %
+    \int_{\partial \Omega} {
+        E_{ij} \kernel{u}_{,j} \bar{v} n_i \ds
+    } - \int_{\Omega} {
+        E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } & \nonumber \\
+    - \imag \int_{\partial \Omega} {
+        E_{ij} \wavenum_{j} \kernel{u} \bar{v} n_i \ds
+    } + \imag \int_{\Omega} {
+        E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i} \dx
+    } - \imag \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber
+    %
+    \intertext{The surface integrals are identically 0 because of the periodicity of \(\kernel{u}\) and \(v\) and can be dropped, leading to the transformed weak for for the general case:}
+    %
+    - \int_{\Omega} {
+        E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } + \imag \int_{\Omega} {
+        E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i} \dx
+    } - \imag \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber
+\end{align}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Transformed weak forms} \label{it.scalar.weak}
+
+\paragraph{General case}
+%
+\begin{align}
+    - \int_{\Omega} {
+        E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } + \imag \int_{\Omega} {
+        E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i} \dx
+    } - \imag \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.general}
+\end{align}
+
+\paragraph{Isotropic modulus} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\)
+%
+\begin{align}
+    - \int_{\Omega} {
+        E \kernel{u}_{,i} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E \wavenum_{i} \kernel{u} \bar{v} \dx
+    } + \imag \int_{\Omega} {
+        E \wavenum_{i} \left(
+            \kernel{u} \bar{v}_{,i} - \kernel{u}_{,i} \bar{v}
+        \right) \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.iso}
+\end{align}
+
+\paragraph{Piecewise constant modulus} Because the weak form (\ref{eq:it.scalar.weak.general}) does not involve derivatives of the modulus, the weak forms for piecewise constant modulus and piecewise constant isotropic modulus are the same as (\ref{eq:it.scalar.weak.general}-\ref{eq:it.scalar.weak.iso}), respectively.

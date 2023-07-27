@@ -7,9 +7,8 @@
 \author{Connor D. Pierce}
 \date{\today}
 
-%\setlength{\parindent}{0pt}
-%\setlength{\parskip}{0.5\baselineskip}
 
+% Customizable math macros
 \newcommand{\imag}{\iota}
 \newcommand{\vect}[1]{\boldsymbol{#1}}
 \newcommand{\x}{x}
@@ -19,10 +18,13 @@
 \newcommand{\bloch}{e^{-\imag \wavevec \cdot \vecx}}
 \newcommand{\blochcomp}[1]{e^{-\imag \wavenum_{#1} \x_{#1}}}
 \newcommand{\kernel}[1]{\tilde{#1}}
+\newcommand{\dx}{\,\mathrm{d}x}
+\newcommand{\ds}{\,\mathrm{d}s}
 
 
 \begin{document}
 \maketitle
+\tableofcontents
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -41,39 +43,22 @@ Bold symbols indicate vectors, e.g. \(\vecx\) is the position vector with compon
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Direct ($\wavevec(\omega)$)}
-
-In the direct formulation (see Collet et al., 2011), we prescribe the temporal frequency \(\omega\) and wave direction \(\vect{\phi}\) and compute the wavevector magnitudes as the eigenvalues. The periodic functions \(\kernel{u}(\vecx)\) are the eigenfunctions.
-
-\noindent TODO: write me
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Indirect ($\omega(\wavevec)$), untransformed}
-
-In the untransformed indirect formulation, we prescribe the wavevector through Floquet-periodic boundary conditions and solve for the temporal frequencies \(\omega\) as eigenvalues. The Floquet-periodic displacement fields \(u(\vecx)\) are the corresponding eigenfunctions.
-
-\noindent TODO: write me
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Indirect ($\omega(\wavevec)$), with Bloch transformation}
-In the transformed indirect formulation, the Bloch ansatz \(u(\vecx) = \kernel{u}(\vecx) \bloch\) is used to transform the equations of motion in terms of the periodic function \(\kernel{u}(\vecx)\). The wavevector \(\wavevec\) is prescribed through additional terms that arise in the strong form of the problem, and the temporal frequency \(\omega\) is solved as the eigenvalue. The periodic functions \(\kernel{u}(\vecx)\) are the corresponding eigenfunctions.
+\section{Problems considered} \label{sec:prob}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Scalar Helmholtz equation}
+\subsection{Scalar Helmholtz equation} \label{sec:prob.scalar}
 
 Eigenproblem:
 %
 \begin{align}
     %
     \nabla \cdot \left(
-        \boldsymbol{E}(\vecx) \nabla w(\vecx, t)
+    \boldsymbol{E}(\vecx) \nabla w(\vecx, t)
     \right) =& \rho(\vecx) \ddot{w}(\vecx, t) \nonumber \\
     %
     \left(
-        E_{ij}(\vecx) w_{,j}(\vecx, t)
+    E_{ij}(\vecx) w_{,j}(\vecx, t)
     \right)_{,i} =& \rho(\vecx) \ddot{w}(\vecx, t) \nonumber \\
     %
     w(\vecx, t) =& u(\vecx) e^{-\imag \omega t} \nonumber \\
@@ -86,152 +71,83 @@ Eigenproblem:
     %
     \left(
         E_{ij}(\vecx) u_{,j}(\vecx)
-    \right)_{,i} =& -\omega^2 \rho(\vecx) u(\vecx) \\
-\end{align}
-%
-Bloch transformation:
-%
-\begin{align}
-    %
-    u(\vecx) &= \kernel{u}(\vecx) \bloch \\
-    %
-    \left(
-        E_{ij}(\vecx) \left[\kernel{u}(\vecx) \blochcomp{k}\right]_{,j}
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        E_{ij}(\vecx) \left[
-            \kernel{u}_{,j}(\vecx) \blochcomp{k}
-            + \kernel{u}(\vecx) (\blochcomp{k})_{,j}
-        \right]
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        E_{ij}(\vecx) \left[
-            \kernel{u}_{,j}(\vecx) \blochcomp{k}
-            + \kernel{u}(\vecx) \blochcomp{m} (-\imag \wavenum_{k} \delta_{kj})
-        \right]
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        E_{ij}(\vecx) \left[
-            \kernel{u}_{,j}(\vecx) \blochcomp{k}
-            - \imag \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
-        \right]
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
-        - \imag E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
-    \right)_{,i}
-    - \imag \left(
-        E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
-    \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        \left[
-            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-        \right]_{,i} \blochcomp{k}
-        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
-    \right)& \nonumber \\
-    - \imag \left(
-        \left[
-            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
-        \right]_{,i} \blochcomp{k}
-        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
-        \blochcomp{k}
-    \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
-    %
-    \left(
-        \left[
-            E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-        \right]_{,i}
-        -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-    \right)& \nonumber \\
-    - \imag \left(
-        \left[
-            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
-        \right]_{,i}
-        - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
-    \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+    \right)_{,i} =& -\omega^2 \rho(\vecx) u(\vecx) \label{eq:prob.scalar}
 \end{align}
 
-\subsubsection{Transformed strong forms}
 
-General case:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Elasticity equation} \label{sec:prob.vector}
+
+Eigenproblem:
 %
 \begin{align}
+    \nabla \cdot \left(
+        \boldsymbol{E}(\vecx) \nabla_s \vect{w}(\vecx, t)
+    \right) =& \rho(\vecx) \ddot{\vect{w}}(\vecx, t) \nonumber \\
+    %
     \left(
-        \left[ E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \right]_{,i}
-        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
-    \right) - \imag \left(
-        \left[
-            E_{ij}(\vecx) \kappa_{j} \kernel{u}(\vecx)
-        \right]_{,i}
-        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-    \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
-\end{align}
-%
-Isotropic modulus, i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
-%
-\begin{align}
+        E_{ijkl}(\vecx) \frac{1}{2} \left(w_{k,l}(\vecx, t) + w_{l,k}(\vecx, t)\right)
+    \right)_{,i} =& \rho(\vecx) \ddot{w}_j(\vecx, t) \nonumber \\
+    %
+    w_j(\vecx, t) =& u_j(\vecx) e^{-\imag \omega t} \nonumber \\
+    %
     \left(
-        \left[ E(\vecx) \kernel{u}_{,i}(\vecx) \right]_{,i}
-        - \wavenum_{i} E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
-    \right) - \imag \left(
-        \left[
-            E(\vecx) \kappa_{i} \kernel{u}(\vecx)
-        \right]_{,i}
-        + \wavenum_{i} E(\vecx) \kernel{u}_{,i}(\vecx)
-    \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+        E_{ijkl}(\vecx) \frac{1}{2} \left(u_{k,l}(\vecx) + u_{l,k}(\vecx)\right)
+    \right)_{,i} e^{-\imag \omega t} =& -\omega^2 \rho(\vecx) u_j(\vecx) e^{
+        -\imag \omega t
+    } \nonumber \\
+    %
+    \left(
+        E_{ijkl}(\vecx) \frac{1}{2}\left(u_{k,l}(\vecx) + u_{l,k}(\vecx)\right)
+    \right)_{,i} =& -\omega^2 \rho(\vecx) u_j(\vecx) \label{eq:prob.vector}
 \end{align}
-%
-Piecewise constant modulus, i.e. \(E_{ij,k}(\vecx) = 0\):
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Bloch ansatz} \label{sec:prob.bloch-ansatz}
+
+Bloch waves have the form
 %
 \begin{align}
-    \Bigl(
-        E_{ij}(\vecx) \kernel{u}_{,ji}(\vecx)
-        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
-    \Bigr) - \imag \Bigl(
-        E_{ij}(\vecx) \kappa_{j} \kernel{u}_{,i}(\vecx)
-        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-    \Bigr) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
+    u(\vecx) =& \kernel{u}(\vecx) \bloch \, , \label{eq:prob.bloch-ansatz}
 \end{align}
 %
-%
-Piecewise constant isotropic modulus:
-%
-\begin{align}
-    E(\vecx) \Bigl(
-        \kernel{u}_{,ii}(\vecx)
-        - \wavenum_{i} \wavenum_{i} \kernel{u}(\vecx)
-    \Bigr) - \imag E(\vecx) \Bigl(
-        \kappa_{i} \kernel{u}_{,i}(\vecx) + \wavenum_{i} \kernel{u}_{,i}(\vecx)
-    \Bigr) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
-\end{align}
+where \(\kernel{u}(\vecx)\) is a function that is periodic on the unit cell.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Direct ($\wavevec(\omega)$)} \label{sec:direct}
+
+In the direct formulation (see Collet et al., 2011), we prescribe the temporal frequency \(\omega\) and wave direction \(\vect{\phi}\) and compute the wavevector magnitudes as the eigenvalues. The periodic functions \(\kernel{u}(\vecx)\) are the eigenfunctions.
+
+\noindent TODO: write me
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Indirect ($\omega(\wavevec)$), untransformed} \label{sec:indirect}
+
+In the untransformed indirect formulation, we prescribe the wavevector through Floquet-periodic boundary conditions and solve for the temporal frequencies \(\omega\) as eigenvalues. The Floquet-periodic displacement fields \(u(\vecx)\) are the corresponding eigenfunctions.
+
+\noindent TODO: write me
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Indirect ($\omega(\wavevec)$), with Bloch transformation}
+\label{sec:it}
+
+In the transformed indirect formulation, the Bloch ansatz is used to transform the equations of motion in terms of the periodic function \(\kernel{u}(\vecx)\). The wavevector \(\wavevec\) is prescribed through additional terms that arise in the strong form of the problem, and the temporal frequency \(\omega\) is solved as the eigenvalue. The periodic functions \(\kernel{u}(\vecx)\) are the corresponding eigenfunctions.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Scalar Helmholtz equation} \label{sec:it.scalar}
+
+\input{it.scalar}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Elasticity equation} \label{sec:it.vector}
+
+%\input{it.vector}
 
 
 \end{document}

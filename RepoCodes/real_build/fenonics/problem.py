@@ -6,7 +6,7 @@
 # Define Bloch eigenproblems in FENICSx.
 #
 # Created:       2023-07-26 13:03:21
-# Last modified: 2023-07-26 13:10:08
+# Last modified: 2023-07-29 13:08:49
 #
 # Copyright (c) 2023 Connor D. Pierce
 #

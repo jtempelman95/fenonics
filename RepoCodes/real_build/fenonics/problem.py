@@ -240,7 +240,15 @@ def _stiffness_form_indirect_transformed(
     if len(u_tr.ufl_shape) == 0:
         # Scalar trial function; create Helmholtz problem
         if ScalarType == np.complex128:
-            return (inner(stress(modulus, u_tr), strain(u_test)) * dx,)
+            return (
+                (
+                    inner(dot(modulus, grad(u_tr)), grad(u_test))
+                    + inner(dot(wave_vec, dot(modulus, wave_vec)) * u_tr, u_test)
+                    - 1j * inner(u_tr * dot(modulus, wave_vec), grad(u_test))
+                    + 1j * inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
+                )
+                * dx,
+            )
         else:
             real_form = (
                 E**2
@@ -261,12 +269,13 @@ def _stiffness_form_indirect_transformed(
             return (real_form, imag_form)
     elif len(u_tr.ufl_shape) == 1:
         # Vector trial function; create elasticity problem
-        if ScalarType == np.complex128:
-            return (inner(stress(modulus, u_tr), strain(u_test)) * dx,)
-        else:
-            real_form = inner(stress(modulus, u_tr), strain(u_test)) * dx
-            imag_form = 0
-            return (real_form, imag_form)
+        raise NotImplementedError("Elasticity equations not implemented yet")
+        # if ScalarType == np.complex128:
+        #     return (inner(stress(modulus, u_tr), strain(u_test)) * dx,)
+        # else:
+        #     real_form = inner(stress(modulus, u_tr), strain(u_test)) * dx
+        #     imag_form = 0
+        #     return (real_form, imag_form)
     else:
         raise ValueError(f"Unsupported trial function shape: {u_tr.ufl_shape}")
 

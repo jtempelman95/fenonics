@@ -1,4 +1,41 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Weak forms} \label{it.scalar.weak}
+
+\paragraph{General case -- monolithic}
+%
+\begin{align}
+    - \int_{\Omega} {
+        E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
+    } + \imag \int_{\Omega} {
+        \left(
+        \kernel{u} \bar{v}_{,i} E_{ij} \wavenum_{j}
+        - \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
+        \right) \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.general}
+\end{align}
+
+\paragraph{Isotropic modulus -- monolithic} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\)
+%
+\begin{align}
+    - \int_{\Omega} {
+        E \kernel{u}_{,i} \bar{v}_{,i} \dx
+    } - \int_{\Omega} {
+        \wavenum_{i} E \wavenum_{i} \kernel{u} \bar{v} \dx
+    } + \imag \int_{\Omega} {
+        E \wavenum_{i} \left(
+        \kernel{u} \bar{v}_{,i} - \kernel{u}_{,i} \bar{v}
+        \right) \dx
+    } &=
+    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.iso}
+\end{align}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Derivation of transformed strong form}
 \label{sec:it.scalar.strong-derivation}
 
@@ -215,7 +252,7 @@ The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.stro
     } &=
     -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber
     %
-    \intertext{The surface integrals are identically 0 because of the periodicity of \(\kernel{u}\) and \(v\) and can be dropped, leading to the transformed weak for for the general case:}
+    \intertext{The surface integrals are identically 0 because of the periodicity of \(\kernel{u}\) and \(v\) and can be dropped, leading to the transformed weak form for the general case:}
     %
     - \int_{\Omega} {
         E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
@@ -227,34 +264,12 @@ The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.stro
         \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
     } &=
     -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber
-\end{align}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Transformed weak forms} \label{it.scalar.weak}
-
-\paragraph{General case}
-%
-\begin{align}
-    - \int_{\Omega} {
-        E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
-    } - \int_{\Omega} {
-        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
-    } + \imag \int_{\Omega} {
-        \left(
-            \kernel{u} \bar{v}_{,i} E_{ij} \wavenum_{j}
-            - \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
-        \right) \dx
-    } &=
-    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
-    \label{eq:it.scalar.weak.general}
+    \tag{\ref{eq:it.scalar.weak.general}}
 \end{align}
 %
-When $\vect{E}$ is real and symmetric, (\ref{eq:it.scalar.weak.general}) is Hermitian and the eigenvalues are real, as expected.
-
-\paragraph{Isotropic modulus} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\)
+When $\vect{E}$ is real and symmetric, (\ref{eq:it.scalar.weak.general}) is Hermitian and the eigenvalues are real, as expected. The weak form can be simplified when the modulus is isotropic, i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
 %
-\begin{align}
+\begin{align*}
     - \int_{\Omega} {
         E \kernel{u}_{,i} \bar{v}_{,i} \dx
     } - \int_{\Omega} {
@@ -265,7 +280,6 @@ When $\vect{E}$ is real and symmetric, (\ref{eq:it.scalar.weak.general}) is Herm
         \right) \dx
     } &=
     -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
-    \label{eq:it.scalar.weak.iso}
-\end{align}
-
-\paragraph{Piecewise constant modulus} Because the weak form (\ref{eq:it.scalar.weak.general}) does not involve derivatives of the modulus, the weak forms for piecewise constant modulus and piecewise constant isotropic modulus are the same as (\ref{eq:it.scalar.weak.general}-\ref{eq:it.scalar.weak.iso}), respectively.
+    \tag{\ref{eq:it.scalar.weak.iso}}
+\end{align*}
+Because the weak form (\ref{eq:it.scalar.weak.general}) does not involve derivatives of the modulus, the weak forms for piecewise constant modulus and piecewise constant isotropic modulus are the same as (\ref{eq:it.scalar.weak.general}-\ref{eq:it.scalar.weak.iso}), respectively.

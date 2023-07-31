@@ -1,52 +1,92 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Weak forms} \label{it.scalar.weak}
 
-\paragraph{General case -- monolithic}
+Various weak forms for the transformed indirect formulation of the scalar Helmholtz equation are summarized in this subsection. Derivations follow in subsequent subsections.
+
+\paragraph{General case---monolithic formulation}
 %
-\begin{align}
-    - \int_{\Omega} {
+\begin{align*}
+    \int_{\Omega} {
         E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
-    } - \int_{\Omega} {
+    } + \int_{\Omega} {
         \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
     } + \imag \int_{\Omega} {
         \left(
-        \kernel{u} \bar{v}_{,i} E_{ij} \wavenum_{j}
-        - \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
+        - \kernel{u} \bar{v}_{,i} E_{ij} \wavenum_{j}
         \right) \dx
     } &=
-    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
-    \label{eq:it.scalar.weak.general}
-\end{align}
+    \omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \tag{\ref{eq:it.scalar.weak.general}}
+\end{align*}
 
-\paragraph{Isotropic modulus -- monolithic} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\)
+
+\paragraph{Isotropic modulus---monolithic formulation}
 %
 \begin{align}
-    - \int_{\Omega} {
+    \int_{\Omega} {
         E \kernel{u}_{,i} \bar{v}_{,i} \dx
-    } - \int_{\Omega} {
+    } + \int_{\Omega} {
         \wavenum_{i} E \wavenum_{i} \kernel{u} \bar{v} \dx
     } + \imag \int_{\Omega} {
         E \wavenum_{i} \left(
-        \kernel{u} \bar{v}_{,i} - \kernel{u}_{,i} \bar{v}
+        \kernel{u}_{,i} \bar{v} - \kernel{u} \bar{v}_{,i}
         \right) \dx
     } &=
-    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
-    \label{eq:it.scalar.weak.iso}
+    \omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \tag{\ref{eq:it.scalar.weak.iso}}
 \end{align}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\paragraph{Lossless, anisotropic modulus---split formulation}
+%
+\begin{align}
+    \mathrm{Real:}& & \int_{\Omega} {
+        E_{ij} \kernel{u}_{,j} v_{,i} \dx
+    } + \int_{\Omega} {
+        \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} v \dx
+    } &= \omega^2 \int_{\Omega} {
+        \rho \kernel{u} v \dx
+    } \tag{\ref{eq:it.scalar.weak.general-split.lossless.real}} \\
+    %
+    \mathrm{Imag:}& & \int_{\Omega} {
+        \wavenum_{i} E_{ij} \kernel{u}_{,j} v \dx
+    } - \int_{\Omega} {
+        E_{ij} \kernel{u} v_{,i} \wavenum_{j} \dx
+    } &= 0 \tag{\ref{eq:it.scalar.weak.general-split.lossless.imag}}
+\end{align}
+
+
+\paragraph{Lossless, isotropic modulus---split formulation}
+%
+\begin{align*}
+    \mathrm{Real:}& & \int_{\Omega} {
+        E \kernel{u}_{,i} v_{,i} \dx
+    } + \int_{\Omega} {
+        E \wavenum_{i} \wavenum_{i} \kernel{u} v \dx
+    } &= \omega^2 \int_{\Omega} {
+        \rho \kernel{u} v \dx
+    } \tag{\ref{eq:it.scalar.weak.iso-split.lossless.real}} \\
+    %
+    \mathrm{Imag:}& & \int_{\Omega} {
+        \wavenum_{i} E \kernel{u}_{,i} v \dx
+    } - \int_{\Omega} {
+        E \kernel{u} v_{,i} \wavenum_{i} \dx
+    } &= 0 \tag{\ref{eq:it.scalar.weak.iso-split.lossless.imag}}
+\end{align*}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Derivation of transformed strong form}
 \label{sec:it.scalar.strong-derivation}
 
 Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\ref{eq:prob.bloch-ansatz}):
 %
-\begin{align}
+\begin{align*}
     \left(
         E_{ij}(\vecx) \left[\kernel{u}(\vecx) \blochcomp{k}\right]_{,j}
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         E_{ij}(\vecx) \left[
@@ -54,8 +94,7 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
             + \kernel{u}(\vecx) (\blochcomp{k})_{,j}
         \right]
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         E_{ij}(\vecx) \left[
@@ -63,8 +102,7 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
             + \kernel{u}(\vecx) \blochcomp{m} (-\imag \wavenum_{k} \delta_{kj})
         \right]
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         E_{ij}(\vecx) \left[
@@ -72,15 +110,13 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
             - \imag \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
         \right]
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
         - \imag E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
@@ -88,15 +124,14 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
     - \imag \left(
         E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx) \blochcomp{k}
     \right)_{,i} &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         \left[
             E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
         \right]_{,i} \blochcomp{k}
         -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx) \blochcomp{k}
-    \right)& \nonumber \\
+    \right)& \\
     - \imag \left(
         \left[
             E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
@@ -104,15 +139,14 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
         - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
         \blochcomp{k}
     \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k}
-    \nonumber \\
+    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \blochcomp{k} \\
     %
     \left(
         \left[
             E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
         \right]_{,i}
         -\imag \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-    \right)& \nonumber \\
+    \right)& \\
     - \imag \left(
         \left[
             E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
@@ -120,11 +154,9 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
         - \imag \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
     \right) &=
     -\omega^2 \rho(\vecx) \kernel{u}(\vecx)
-\end{align}
-
-\subsubsection{Transformed strong forms} \label{sec:it.scalar.strong}
-
-\paragraph{General case}
+\end{align*}
+%
+The most general form of the transformed strong form is:
 %
 \begin{align}
     \left(
@@ -139,51 +171,12 @@ Consider the eigenproblem (\ref{eq:prob.scalar}) and insert the Bloch ansatz (\r
     -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.general}
 \end{align}
 
-\paragraph{Isotropic modulus} i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
-%
-\begin{align}
-    \left(
-        \left[ E(\vecx) \kernel{u}_{,i}(\vecx) \right]_{,i}
-        - \wavenum_{i} E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
-    \right) - \imag \left(
-        \left[
-            E(\vecx) \wavenum_{i} \kernel{u}(\vecx)
-        \right]_{,i}
-        + \wavenum_{i} E(\vecx) \kernel{u}_{,i}(\vecx)
-    \right) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.iso}
-\end{align}
 
-\paragraph{Piecewise constant modulus} i.e. \(E_{ij,k}(\vecx) = 0\):
-%
-\begin{align}
-    \Bigl(
-        E_{ij}(\vecx) \kernel{u}_{,ji}(\vecx)
-        - \wavenum_{i} E_{ij}(\vecx) \wavenum_{j} \kernel{u}(\vecx)
-    \Bigr) - \imag \Bigl(
-        E_{ij}(\vecx) \wavenum_{j} \kernel{u}_{,i}(\vecx)
-        + \wavenum_{i} E_{ij}(\vecx) \kernel{u}_{,j}(\vecx)
-    \Bigr) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.pc}
-\end{align}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Derivation of weak form---monolithic formulation} \label{sec:it.scalar.weak-monolithic-derivation}
 
-\paragraph{Piecewise constant isotropic modulus}
-%
-\begin{align}
-    E(\vecx) \Bigl(
-        \kernel{u}_{,ii}(\vecx)
-        - \wavenum_{i} \wavenum_{i} \kernel{u}(\vecx)
-    \Bigr) - \imag E(\vecx) \Bigl(
-        \wavenum_{i} \kernel{u}_{,i}(\vecx) + \wavenum_{i} \kernel{u}_{,i}(\vecx)
-    \Bigr) &=
-    -\omega^2 \rho(\vecx) \kernel{u}(\vecx) \label{eq:it.scalar.strong.pc-iso}
-\end{align}
+The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.strong.general}) with the complex conjugate \(\bar{v}\) of a test function \(v\) and integrating over the unit cell. Like the trial function, the test function is periodic on the unit cell. For conciseness, we omit the function notation ``\((\vecx)\)'', but it is to be understood that the trial and test functions \(\kernel{u}\) and \(v\), as well as the modulus \(E_{ij}\) and density \(\rho\), are functions of position.
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsubsection{Derivation of weak forms} \label{sec:it.scalar.weak-derivation}
-
-The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.strong.general}) with the complex conjugate \(\bar{v}\) of a test function \(v\) and integrating over the unit cell. The test function is periodic on the unit cell. We derive the weak form for the general case first, then specialize it to the other three cases (\ref{eq:it.scalar.strong.iso}-\ref{eq:it.scalar.strong.pc-iso}). For conciseness, we omit the function notation ``\((\vecx)\)'', but it is to be understood that the trial and test functions \(\kernel{u}\) and \(v\), as well as the modulus \(E_{ij}\) and density \(\rho\), are functions of position.
 
 \paragraph{General case}
 %
@@ -254,32 +247,408 @@ The weak form is obtained by multiplying the strong form (\ref{eq:it.scalar.stro
     %
     \intertext{The surface integrals are identically 0 because of the periodicity of \(\kernel{u}\) and \(v\) and can be dropped, leading to the transformed weak form for the general case:}
     %
-    - \int_{\Omega} {
+    \int_{\Omega} {
         E_{ij} \kernel{u}_{,j} \bar{v}_{,i} \dx
-    } - \int_{\Omega} {
+    } + \int_{\Omega} {
         \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} \bar{v} \dx
     } + \imag \int_{\Omega} {
-        E_{ij} \wavenum_{j} \kernel{u} \bar{v}_{,i} \dx
-    } - \imag \int_{\Omega} {
-        \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v} \dx
+        \Bigl(
+            \wavenum_{i} E_{ij} \kernel{u}_{,j} \bar{v}
+            - \kernel{u} \bar{v}_{,i}E_{ij} \wavenum_{j}
+        \Bigr)
+         \dx
     } &=
-    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx } \nonumber
-    \tag{\ref{eq:it.scalar.weak.general}}
+    \omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.general}
 \end{align}
 %
-When $\vect{E}$ is real and symmetric, (\ref{eq:it.scalar.weak.general}) is Hermitian and the eigenvalues are real, as expected. The weak form can be simplified when the modulus is isotropic, i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
+When $\vect{E}$ is real and symmetric and $\wavevec$ is real, (\ref{eq:it.scalar.weak.general}) is Hermitian and the eigenvalues are real, as expected.
+
+
+\paragraph{Isotropic case} The weak form (\ref{eq:it.scalar.weak.general}) can be simplified when the modulus is isotropic, i.e. \(E_{ij}(\vecx) = E(\vecx) \delta_{ij}\):
 %
-\begin{align*}
-    - \int_{\Omega} {
+\begin{align}
+    \int_{\Omega} {
         E \kernel{u}_{,i} \bar{v}_{,i} \dx
-    } - \int_{\Omega} {
+    } + \int_{\Omega} {
         \wavenum_{i} E \wavenum_{i} \kernel{u} \bar{v} \dx
     } + \imag \int_{\Omega} {
         E \wavenum_{i} \left(
-            \kernel{u} \bar{v}_{,i} - \kernel{u}_{,i} \bar{v}
+            \kernel{u}_{,i} \bar{v} - \kernel{u} \bar{v}_{,i}
         \right) \dx
     } &=
-    -\omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
-    \tag{\ref{eq:it.scalar.weak.iso}}
-\end{align*}
-Because the weak form (\ref{eq:it.scalar.weak.general}) does not involve derivatives of the modulus, the weak forms for piecewise constant modulus and piecewise constant isotropic modulus are the same as (\ref{eq:it.scalar.weak.general}-\ref{eq:it.scalar.weak.iso}), respectively.
+    \omega^2 \int_{\Omega} { \rho \kernel{u} \bar{v} \dx }
+    \label{eq:it.scalar.weak.iso}
+\end{align}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Derivation of weak form---split formulation}
+\label{sec:it.scalar.weak-split-derivation}
+
+\paragraph{General case (lossy media)} The functions comprising the integrands in (\ref{eq:it.scalar.weak.general}) are split into their real and imaginary parts:
+%
+\begin{align}
+    & \int_{\Omega} {
+        (E^R_{ij} + \imag E^I_{ij})
+        (\kernel{u}^R_{,j} + \imag \kernel{u}^I_{,j})
+        (v^R_{,i} - \imag v^I_{,i})
+        \dx
+    } \nonumber \\
+    +& \int_{\Omega} {
+        \wavenum_{i}
+        (E^R_{ij} + \imag E^I_{ij})
+        \wavenum_{j}
+        (\kernel{u}^R + \imag \kernel{u}^I)
+        (v^R - \imag v^I)
+        \dx
+    } \nonumber \\
+    + & \imag \int_{\Omega} {
+    \wavenum_{i}
+    (E^R_{ij} + \imag E^I_{ij})
+    (\kernel{u}^R_{,j} + \imag \kernel{u}^I_{,j})
+    (v^R - \imag v^I)
+    \dx
+    } \nonumber \\
+    - & \imag \int_{\Omega} {
+        (E^R_{ij} + \imag E^I_{ij})
+        \wavenum_{j}
+        (\kernel{u}^R + \imag \kernel{u}^I)
+        (v^R_{,i} - \imag v^I_{,i})
+        \dx
+    } \nonumber \\
+    &=
+    \omega^2 \int_{\Omega} {
+        \rho
+        (\kernel{u}^R + \imag \kernel{u}^I)
+        (v^R - \imag v^I)
+        \dx
+    } \nonumber
+\end{align}
+%
+\begin{align}
+    & \int_{\Omega} {
+        \Bigl(
+            \left[
+                E^R_{ij} \kernel{u}^R_{,j} v^R_{,i}
+                + E^R_{ij} \kernel{u}^I_{,j} v^I_{,i}
+                + E^I_{ij} \kernel{u}^R_{,j} v^I_{,i}
+                - E^I_{ij} \kernel{u}^I_{,j} v^R_{,i}
+            \right]
+            + \imag \left[
+                E^R_{ij} \kernel{u}^I_{,j} v^R_{,i}
+                - E^R_{ij} \kernel{u}^R_{,j} v^I_{,i}
+                + E^I_{ij} \kernel{u}^R_{,j} v^R_{,i}
+                + E^I_{ij} \kernel{u}^I_{,j} v^I_{,i}
+            \right]
+        \Bigr)
+        \dx
+    } \nonumber \\
+    +& \int_{\Omega} {
+        \wavenum_{i} \Bigl(
+            \left[
+                E^R_{ij} \kernel{u}^R v^R
+                + E^R_{ij} \kernel{u}^I v^I
+                + E^I_{ij} \kernel{u}^R v^I
+                - E^I_{ij} \kernel{u}^I v^R
+                \right]
+                + \imag \left[
+                E^R_{ij} \kernel{u}^I v^R
+                - E^R_{ij} \kernel{u}^R v^I
+                + E^I_{ij} \kernel{u}^R v^R
+                + E^I_{ij} \kernel{u}^I v^I
+            \right]
+        \Bigr)
+        \wavenum_{j}
+        \dx
+    } \nonumber \\
+    +& \imag \int_{\Omega} {
+        \wavenum_{i} \Bigl(
+            \left[
+                E^R_{ij} \kernel{u}^R_{,j} v^R
+                + E^R_{ij} \kernel{u}^I_{,j} v^I
+                + E^I_{ij} \kernel{u}^R_{,j} v^I
+                - E^I_{ij} \kernel{u}^I_{,j} v^R
+            \right]
+            + \imag \left[
+                E^R_{ij} \kernel{u}^I_{,j} v^R
+                - E^R_{ij} \kernel{u}^R_{,j} v^I
+                + E^I_{ij} \kernel{u}^R_{,j} v^R
+                + E^I_{ij} \kernel{u}^I_{,j} v^I
+            \right]
+        \Bigr)
+        \dx
+    } \nonumber \\
+    -& \imag \int_{\Omega} {
+        \Bigl(
+            \left[
+                E^R_{ij} \kernel{u}^R v^R_{,i}
+                + E^R_{ij} \kernel{u}^I v^I_{,i}
+                + E^I_{ij} \kernel{u}^R v^I_{,i}
+                - E^I_{ij} \kernel{u}^I v^R_{,i}
+            \right]
+            + \imag \left[
+                E^R_{ij} \kernel{u}^I v^R_{,i}
+                - E^R_{ij} \kernel{u}^R v^I_{,i}
+                + E^I_{ij} \kernel{u}^R v^R_{,i}
+                + E^I_{ij} \kernel{u}^I v^I_{,i}
+            \right]
+        \Bigr) \wavenum_{j}
+        \dx
+    } \nonumber \\
+    &= \omega^2 \int_{\Omega} {
+        \rho
+        \Bigl(
+            \left[
+                \kernel{u}^R v^R + \kernel{u}^I v^I
+            \right]
+            + \imag \left[
+                \kernel{u}^I v^R - \kernel{u}^R v^I
+            \right]
+        \Bigr)
+        \dx
+    } \nonumber
+\end{align}
+%
+leading to the split formulation of (\ref{eq:it.scalar.weak.general}) for lossy media:
+%
+\begin{subequations}
+    \small
+    \begin{align}
+        & \int_{\Omega} {
+            \left[
+                E^R_{ij} \kernel{u}^R_{,j} v^R_{,i}
+                + E^R_{ij} \kernel{u}^I_{,j} v^I_{,i}
+                + E^I_{ij} \kernel{u}^R_{,j} v^I_{,i}
+                - E^I_{ij} \kernel{u}^I_{,j} v^R_{,i}
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \wavenum_{i}
+            \left[
+                E^R_{ij} \kernel{u}^R v^R
+                + E^R_{ij} \kernel{u}^I v^I
+                + E^I_{ij} \kernel{u}^R v^I
+                - E^I_{ij} \kernel{u}^I v^R
+            \right]
+            \wavenum_{j}
+            \dx
+        } \nonumber \\
+        -& \int_{\Omega} {
+            \wavenum_{i} \left[
+                E^R_{ij} \kernel{u}^I_{,j} v^R
+                - E^R_{ij} \kernel{u}^R_{,j} v^I
+                + E^I_{ij} \kernel{u}^R_{,j} v^R
+                + E^I_{ij} \kernel{u}^I_{,j} v^I
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \left[
+                E^R_{ij} \kernel{u}^I v^R_{,i}
+                - E^R_{ij} \kernel{u}^R v^I_{,i}
+                + E^I_{ij} \kernel{u}^R v^R_{,i}
+                + E^I_{ij} \kernel{u}^I v^I_{,i}
+            \right]
+            \wavenum_{j}
+            \dx
+        } \nonumber \\
+        &= \omega^2 \int_{\Omega} {
+            \rho
+            \left[
+                \kernel{u}^R v^R + \kernel{u}^I v^I
+            \right]
+            \dx
+        } \label{eq:it.scalar.weak.general-split.lossy.real} \\
+        %
+        & \int_{\Omega} {
+            \left[
+                E^R_{ij} \kernel{u}^I_{,j} v^R_{,i}
+                - E^R_{ij} \kernel{u}^R_{,j} v^I_{,i}
+                + E^I_{ij} \kernel{u}^R_{,j} v^R_{,i}
+                + E^I_{ij} \kernel{u}^I_{,j} v^I_{,i}
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \wavenum_{i} \left[
+                E^R_{ij} \kernel{u}^I v^R
+                - E^R_{ij} \kernel{u}^R v^I
+                + E^I_{ij} \kernel{u}^R v^R
+                + E^I_{ij} \kernel{u}^I v^I
+            \right]
+            \wavenum_{j}
+            \dx
+        } \nonumber \\
+        +& \int_{\Omega} {
+            \wavenum_{i}
+            \left[
+                E^R_{ij} \kernel{u}^R_{,j} v^R
+                + E^R_{ij} \kernel{u}^I_{,j} v^I
+                + E^I_{ij} \kernel{u}^R_{,j} v^I
+                - E^I_{ij} \kernel{u}^I_{,j} v^R
+            \right]
+            \dx
+        } - \int_{\Omega} {
+            \left[
+                E^R_{ij} \kernel{u}^R v^R_{,i}
+                + E^R_{ij} \kernel{u}^I v^I_{,i}
+                + E^I_{ij} \kernel{u}^R v^I_{,i}
+                - E^I_{ij} \kernel{u}^I v^R_{,i}
+            \right]
+            \wavenum_{j}
+            \dx
+        } \nonumber \\
+        &= \omega^2 \int_{\Omega} {
+            \rho
+            \left[
+                \kernel{u}^I v^R - \kernel{u}^R v^I
+            \right]
+            \dx
+        } \label{eq:it.scalar.weak.general-split.lossy.imag}
+    \end{align}
+    \label{eq:it.scalar.weak.general-split.lossy}
+\end{subequations}
+%
+where (\ref{eq:it.scalar.weak.general-split.lossy.real}) and (\ref{eq:it.scalar.weak.general-split.lossy.imag}) are the real and imaginary parts of (\ref{eq:it.scalar.weak.general}), respectively.
+
+\paragraph{Lossless (possibly anisotropic) media} When the problem is lossless, i.e. $\boldsymbol{E}$ and $\rho$ are real, the split formulation (\ref{eq:it.scalar.weak.general-split.lossy}) can be further simplified:
+\begin{subequations}
+    \small
+    \begin{align}
+        \int_{\Omega} {
+            E_{ij} \kernel{u}_{,j} v_{,i} \dx
+        } + \int_{\Omega} {
+            \wavenum_{i} E_{ij} \wavenum_{j} \kernel{u} v \dx
+        } &= \omega^2 \int_{\Omega} {
+            \rho \kernel{u} v \dx
+        } \label{eq:it.scalar.weak.general-split.lossless.real} \\
+        %
+        \int_{\Omega} {
+            \wavenum_{i} E_{ij} \kernel{u}_{,j} v \dx
+        } - \int_{\Omega} {
+            E_{ij} \kernel{u} v_{,i} \wavenum_{j} \dx
+        } &= 0 \label{eq:it.scalar.weak.general-split.lossless.imag}
+    \end{align}
+    \label{eq:it.scalar.weak.general-split.lossless}
+\end{subequations}
+
+
+\paragraph{Isotropic, lossy media} Equation (\ref{eq:it.scalar.weak.general-split.lossless}) can be simplified when the modulus is isotropic:
+%
+\begin{subequations}
+    \small
+    \begin{align}
+        & \int_{\Omega} {
+            \left[
+                E^R \kernel{u}^R_{,i} v^R_{,i}
+                + E^R \kernel{u}^I_{,i} v^I_{,i}
+                + E^I \kernel{u}^R_{,i} v^I_{,i}
+                - E^I \kernel{u}^I_{,i} v^R_{,i}
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \wavenum_{i} \wavenum_{i}
+            \left[
+                E^R \kernel{u}^R v^R
+                + E^R \kernel{u}^I v^I
+                + E^I \kernel{u}^R v^I
+                - E^I \kernel{u}^I v^R
+            \right]
+            \dx
+        } \nonumber \\
+        -& \int_{\Omega} {
+            \wavenum_{i} \left[
+                E^R \kernel{u}^I_{,i} v^R
+                - E^R \kernel{u}^R_{,i} v^I
+                + E^I \kernel{u}^R_{,i} v^R
+                + E^I \kernel{u}^I_{,i} v^I
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \left[
+                E^R \kernel{u}^I v^R_{,i}
+                - E^R \kernel{u}^R v^I_{,i}
+                + E^I \kernel{u}^R v^R_{,i}
+                + E^I \kernel{u}^I v^I_{,i}
+            \right]
+            \wavenum_{i}
+            \dx
+        } \nonumber \\
+        &= \omega^2 \int_{\Omega} {
+            \rho
+            \left[
+            \kernel{u}^R v^R + \kernel{u}^I v^I
+            \right]
+            \dx
+        } \label{eq:it.scalar.weak.iso-split.lossy.real} \\
+        %
+        & \int_{\Omega} {
+            \left[
+                E^R \kernel{u}^I_{,i} v^R_{,i}
+                - E^R \kernel{u}^R_{,i} v^I_{,i}
+                + E^I \kernel{u}^R_{,i} v^R_{,i}
+                + E^I \kernel{u}^I_{,i} v^I_{,i}
+            \right]
+            \dx
+        } + \int_{\Omega} {
+            \wavenum_{i} \left[
+                E^R \kernel{u}^I v^R
+                - E^R \kernel{u}^R v^I
+                + E^I \kernel{u}^R v^R
+                + E^I \kernel{u}^I v^I
+            \right]
+            \wavenum_{i}
+            \dx
+        } \nonumber \\
+        +& \int_{\Omega} {
+            \wavenum_{i}
+            \left[
+                E^R \kernel{u}^R_{,i} v^R
+                + E^R \kernel{u}^I_{,i} v^I
+                + E^I \kernel{u}^R_{,i} v^I
+                - E^I \kernel{u}^I_{,i} v^R
+            \right]
+            \dx
+        } - \int_{\Omega} {
+            \left[
+                E^R \kernel{u}^R v^R_{,i}
+                + E^R \kernel{u}^I v^I_{,i}
+                + E^I \kernel{u}^R v^I_{,i}
+                - E^I \kernel{u}^I v^R_{,i}
+            \right]
+            \wavenum_{i}
+            \dx
+        } \nonumber \\
+        &= \omega^2 \int_{\Omega} {
+            \rho
+            \left[
+            \kernel{u}^I v^R - \kernel{u}^R v^I
+            \right]
+            \dx
+        } \label{eq:it.scalar.weak.iso-split.lossy.imag}
+    \end{align}
+    \label{eq:it.scalar.weak.iso-split.lossy}
+\end{subequations}
+%
+where (\ref{eq:it.scalar.weak.iso-split.lossy.real}) and (\ref{eq:it.scalar.weak.iso-split.lossy.imag}) are the real and imaginary parts, respectively.
+
+\paragraph{Lossless isotropic media} When the problem is isotropic and lossless, i.e. $\boldsymbol{E}$ and $\rho$ are real, the split formulation (\ref{eq:it.scalar.weak.iso-split.lossy}) can be further simplified:
+\begin{subequations}
+    \small
+    \begin{align}
+        \int_{\Omega} {
+            E \kernel{u}_{,i} v_{,i} \dx
+        } + \int_{\Omega} {
+            E \wavenum_{i} \wavenum_{i} \kernel{u} v \dx
+        } &= \omega^2 \int_{\Omega} {
+            \rho \kernel{u} v \dx
+        } \label{eq:it.scalar.weak.iso-split.lossless.real} \\
+        %
+        \int_{\Omega} {
+            \wavenum_{i} E \kernel{u}_{,i} v \dx
+        } - \int_{\Omega} {
+            E \kernel{u} v_{,i} \wavenum_{i} \dx
+        } &= 0 \label{eq:it.scalar.weak.iso-split.lossless.imag}
+    \end{align}
+    \label{eq:it.scalar.weak.iso-split.lossless}
+\end{subequations}
+

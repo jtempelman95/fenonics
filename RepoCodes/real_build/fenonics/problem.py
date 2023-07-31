@@ -251,21 +251,13 @@ def _stiffness_form_indirect_transformed(
             )
         else:
             real_form = (
-                E**2
-                * (
-                    inner(grad(u_tr), grad(u_test))
-                    + u_tr * u_test * inner(wave_vec, wave_vec)
-                )
-                * dx
-            )
+                inner(dot(modulus, grad(u_tr)), grad(u_test))
+                + inner(u_tr * dot(wave_vec, modulus), wave_vec * u_test)
+            ) * dx
             imag_form = (
-                E**2
-                * (
-                    u_tr * inner(grad(u_test), wave_vec)
-                    - u_test * inner(grad(u_tr), wave_vec)
-                )
-                * dx
-            )
+                inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
+                - inner(u_tr * dot(modulus, wave_vec), grad(u_test))
+            ) * dx
             return (real_form, imag_form)
     elif len(u_tr.ufl_shape) == 1:
         # Vector trial function; create elasticity problem
@@ -298,8 +290,9 @@ def stiffness_form(
 
     The PETSc scalar type determines the splitting scheme used. If the scalar type is
     complex, a single sesquilinear form is returned that incorporates real and imaginary
-    parts. If the scalar type is real, two bilinear forms are returned, one each for the
-    real and imaginary parts of the sesquilinear form.
+    parts. If the scalar type is real, the problem is assumed to be lossless and two
+    bilinear forms are returned, one each for the real and imaginary parts of the
+    stiffness matrix.
 
     Additional keyword arguments may be required, depending on `problem_type` (see
     below).

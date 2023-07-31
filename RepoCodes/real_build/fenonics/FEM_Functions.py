@@ -80,9 +80,11 @@ import time
 # Finite element modeling
 import dolfinx
 import dolfinx_mpc
+from dolfinx import fem
 from dolfinx.fem import form, Function, FunctionSpace
 from dolfinx.mesh import locate_entities_boundary
-from dolfinx import fem
+from fenonics import problem
+from fenonics.problem import BlochProblemType
 from mpi4py import MPI
 from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType
@@ -343,6 +345,29 @@ def solve_system(
     return eval, evec
 
 
+def solve_system_complex(
+    eigensolver: SLEPc.EPS, n_solutions: int, fs: fem.FunctionSpace
+):
+    """Solve dispersion and extract eigenfrequencies and eigenvectors.
+
+    Parameters
+    ----------
+    - `eigensolver` SLEPc eigensolver object
+    - `n_solutions` number of eigenvalue/eigenvector pairs to compute
+    """
+
+    eig_val = []
+    eig_vec = []
+    eigensolver.solve()
+    for j in range(eigensolver.getConverged()):
+        eig_val.append(eigensolver.getEigenvalue(j))
+        vec = dolfinx.la.create_petsc_vector(fs.dofmap.index_map, fs.dofmap.bs)
+        e_vec = eigensolver.getEigenvector(j, vec)
+        mpc.backsubstitution(vec)
+        eig_vec.append(e_vec)
+    return eig_val, eig_vec
+
+
 def assign_mat_props(
     mesh: dolfinx.mesh.Mesh, rho: list[float], c: list[float], ct: dolfinx.mesh.meshtags
 ):
@@ -416,6 +441,11 @@ def solve_bands(
 ):
     """Solve the band stucture on Γ-X-M-Γ.
 
+    If the PETSc scalar type is complex, the problem is assumed to be (possibly) lossy,
+    assembled using a fully complex formulation, and solved using SLEPc. If the PETSc
+    scalar type is real, the problem is assumed to be lossless, assembled using a split
+    formulation, and solved using Scipy.
+
     parameters
     ----------
     n_solutions  - Number of eigensolutions to generate for each wavevector
@@ -457,9 +487,6 @@ def solve_bands(
     u_tr = TrialFunction(V)
     u_test = TestFunction(V)
 
-    # Make mass matrix
-    Mcomp = mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs)
-
     # Intitialize loop params
     nvec_per_HS = int(round(n_wavevector / len(HSpts)))
     evals_disp, evecs_disp = [], []
@@ -469,39 +496,97 @@ def solve_bands(
     KX.append(kx)
     KY.append(ky)
 
-    # Loop to compute band structure
-    print("Computing Band Structure... ")
-    for k in range(len(HSpts) - 1):
-        print("Computing " + str(HSstr[k]) + " to " + str(HSstr[k + 1]))
-        slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
-        nsolve = nvec_per_HS
-        for j in range(nsolve):
-            kx = kx + slope[0] / nvec_per_HS
-            ky = ky + slope[1] / nvec_per_HS
-            ky = 0 if np.isclose(ky, 0) else ky
-            kx = 0 if np.isclose(kx, 0) else kx
-            KX.append(kx)
-            KY.append(ky)
-            eval, evec = solve_system(
-                kx, ky, E, Mcomp, mpc, bcs, n_solutions, mesh, u_tr, u_test
-            )
-            eval[np.isclose(eval, 0)] == 0
-            eigfrq_sp_cmp = np.abs(np.real(eval)) ** 0.5
-            eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
-            evals_disp.append(eigfrq_sp_cmp)
-            evecs_disp.append(evec)
+    if ScalarType == np.float64:
+        # Make mass matrix
+        Mcomp = mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs)
 
-    t2 = round(time.time() - start, 3)
+        # Loop to compute band structure
+        print("Computing Band Structure... ")
+        for k in range(len(HSpts) - 1):
+            print("Computing " + str(HSstr[k]) + " to " + str(HSstr[k + 1]))
+            slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
+            nsolve = nvec_per_HS
+            for j in range(nsolve):
+                kx = kx + slope[0] / nvec_per_HS
+                ky = ky + slope[1] / nvec_per_HS
+                ky = 0 if np.isclose(ky, 0) else ky
+                kx = 0 if np.isclose(kx, 0) else kx
+                KX.append(kx)
+                KY.append(ky)
+                eval, evec = solve_system(
+                    kx, ky, E, Mcomp, mpc, bcs, n_solutions, mesh, u_tr, u_test
+                )
+                eval[np.isclose(eval, 0)] == 0
+                eigfrq_sp_cmp = np.abs(np.real(eval)) ** 0.5
+                eigfrq_sp_cmp = np.sort(eigfrq_sp_cmp)
+                evals_disp.append(eigfrq_sp_cmp)
+                evecs_disp.append(evec)
 
-    print("Time to compute dispersion " + str(t2))
-    print("Band computation complete")
-    print("-----------------")
-    print("N_dof...." + str(ct.values.shape[0]))
-    print("N_vectors...." + str(n_solutions))
-    print("N_wavenumbers...." + str(n_wavevector))
-    print("T total...." + str(round(t2, 3)))
+        t2 = round(time.time() - start, 3)
 
-    return evals_disp, evecs_disp, mpc, KX, KY
+        print("Time to compute dispersion " + str(t2))
+        print("Band computation complete")
+        print("-----------------")
+        print("N_dof...." + str(ct.values.shape[0]))
+        print("N_vectors...." + str(n_solutions))
+        print("N_wavenumbers...." + str(n_wavevector))
+        print("T total...." + str(round(t2, 3)))
+
+        return evals_disp, evecs_disp, mpc, KX, KY
+    else:
+        from fenonics import solver
+
+        wave_vec = fem.Constant((0.0, 0.0), ScalarType)
+        mass_form = problem.mass_form()
+        (stiffness_form,) = problem.stiffness_form(
+            BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, E, wave_vec
+        )
+        M = dolfinx_mpc.assemble_matrix(mass_form, mpc, bcs=bcs, diagval=1e-2)
+        K = None
+        eigensolver = None
+
+        # Loop to compute band structure
+        print("Computing Band Structure... ")
+        for k in range(len(HSpts) - 1):
+            print(f"Computing {HSstr[k]} to {HSstr[k + 1]}")
+            slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
+            nsolve = nvec_per_HS
+            for j in range(nsolve):
+                # Compute wavevector
+                kx = kx + slope[0] / nvec_per_HS
+                ky = ky + slope[1] / nvec_per_HS
+                ky = 0 if np.isclose(ky, 0) else ky
+                kx = 0 if np.isclose(kx, 0) else kx
+                KX.append(kx)
+                KY.append(ky)
+                wave_vec.value = (kx, ky)
+
+                # Assemble
+                K = dolfinx_mpc.assemble_matrix(
+                    stiffness_form, mpc, bcs=bcs, diagval=1e6, A=K
+                )
+                if eigensolver is None:
+                    eigensolver = solver.get_EPS(K, M)
+                else:
+                    # TODO: this command may be unnecessary because we reuse K and M
+                    eigensolver.setOperators(K, M)
+
+                # Solve
+                eig_val, eig_vec = solve_system_complex(eigensolver, n_solutions)
+                eig_val[np.isclose(eig_val, 0)] == 0
+                eig_frq = np.abs(np.real(eval)) ** 0.5
+                eig_frq = np.sort(eig_frq)
+                evals_disp.append(eig_frq)
+                evecs_disp.append(eig_vec)
+
+        t2 = time.time() - start
+
+        print("Band computation complete")
+        print("-------------------------")
+        print(f"N_dof... {ct.values.shape[0]}")
+        print(f"N_vectors... {n_solutions}")
+        print(f"N_wavenumbers... {n_wavevector}")
+        print("Time to compute dispersion: {t2:.3f}s".format(t2=t2))
 
 
 ########################################################################################

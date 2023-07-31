@@ -71,9 +71,9 @@ class BlochProblemType(enum.IntEnum):
     INDIRECT_TRANSFORMED - ω(k) formulation, periodic $\\hat{u}(x)$ as eigenvector
     """
 
-    DIRECT: 1
-    INDIRECT: 2
-    INDIRECT_TRANSFORMED: 3
+    DIRECT = 1
+    INDIRECT = 2
+    INDIRECT_TRANSFORMED = 3
 
     # TODO: check if this conforms to the standard nomenclature in phononics literature
 

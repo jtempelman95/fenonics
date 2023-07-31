@@ -536,10 +536,10 @@ def solve_bands(
     else:
         from fenonics import solver
 
-        wave_vec = fem.Constant((0.0, 0.0), ScalarType)
-        mass_form = problem.mass_form()
+        wave_vec = fem.Constant(mesh, ScalarType((0.0, 0.0)))
+        mass_form = problem.mass_form(BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, Rho, wave_vec=wave_vec)
         (stiffness_form,) = problem.stiffness_form(
-            BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, E, wave_vec
+            BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, E, wave_vec=wave_vec
         )
         M = dolfinx_mpc.assemble_matrix(mass_form, mpc, bcs=bcs, diagval=1e-2)
         K = None

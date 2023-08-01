@@ -346,7 +346,10 @@ def solve_system(
 
 
 def solve_system_complex(
-    eigensolver: SLEPc.EPS, n_solutions: int, fs: fem.FunctionSpace
+    eigensolver: SLEPc.EPS,
+    n_solutions: int,
+    fs: fem.FunctionSpace,
+    mpc: dolfinx_mpc.MultiPointConstraint,
 ):
     """Solve dispersion and extract eigenfrequencies and eigenvectors.
 
@@ -365,7 +368,7 @@ def solve_system_complex(
         e_vec = eigensolver.getEigenvector(j, vec)
         mpc.backsubstitution(vec)
         eig_vec.append(e_vec)
-    return eig_val, eig_vec
+    return np.array(eig_val), eig_vec
 
 
 def assign_mat_props(
@@ -384,21 +387,14 @@ def assign_mat_props(
         for each mesh coordinate
     """
 
-    if len(rho) > 1:
-        # E.g., if more than one physical group assigned.
+    Q = FunctionSpace(mesh, ("DG", 0))
+    E = Function(Q)
+    Rho = Function(Q)
+    for i, (rho_i, c_i) in enumerate(zip(rho, c)):
         # Assign material propoerties to each physical group.
-        Q = FunctionSpace(mesh, ("DG", 0))
-        E = Function(Q)
-        Rho = Function(Q)
-        disk1_cells = ct.find(1)
-        disk2_cells = ct.find(2)
-        Rho.x.array[disk1_cells] = np.full_like(disk1_cells, rho[0], dtype=ScalarType)
-        Rho.x.array[disk2_cells] = np.full_like(disk2_cells, rho[1], dtype=ScalarType)
-        E.x.array[disk1_cells] = np.full_like(disk1_cells, c[0], dtype=ScalarType)
-        E.x.array[disk2_cells] = np.full_like(disk2_cells, c[1], dtype=ScalarType)
-    else:
-        Rho = rho[0]
-        E = c[0]
+        cells = ct.find(i + 1)
+        Rho.interpolate(lambda x: np.full((x.shape[1],), rho_i), cells=cells)
+        E.interpolate(lambda x: np.full((x.shape[1],), c_i**2 * rho_i), cells=cells)
     return E, Rho
 
 
@@ -537,7 +533,9 @@ def solve_bands(
         from fenonics import solver
 
         wave_vec = fem.Constant(mesh, ScalarType((0.0, 0.0)))
-        mass_form = problem.mass_form(BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, Rho, wave_vec=wave_vec)
+        mass_form = problem.mass_form(
+            BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, Rho, wave_vec=wave_vec
+        )
         (stiffness_form,) = problem.stiffness_form(
             BlochProblemType.INDIRECT_TRANSFORMED, u_tr, u_test, E, wave_vec=wave_vec
         )
@@ -572,12 +570,15 @@ def solve_bands(
                     eigensolver.setOperators(K, M)
 
                 # Solve
-                eig_val, eig_vec = solve_system_complex(eigensolver, n_solutions)
+                eig_val, eig_vec = solve_system_complex(
+                    eigensolver, n_solutions, V, mpc
+                )
                 eig_val[np.isclose(eig_val, 0)] == 0
-                eig_frq = np.abs(np.real(eval)) ** 0.5
+                eig_frq = np.abs(np.real(eig_val)) ** 0.5
                 eig_frq = np.sort(eig_frq)
                 evals_disp.append(eig_frq)
                 evecs_disp.append(eig_vec)
+        return evals_disp, evecs_disp, mpc, KX, KY
 
         t2 = time.time() - start
 

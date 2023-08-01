@@ -55,7 +55,7 @@ import numpy as np
 import typing
 import ufl
 
-from dolfinx.fem import Constant
+from dolfinx import fem
 from petsc4py.PETSc import ScalarType
 from ufl import dot, dx, inner, sym, grad, Argument, Coefficient, Form
 
@@ -206,10 +206,13 @@ def mass_form(
 
         if len(u_tr.ufl_shape) == 0:
             # Scalar trial function; create Helmholtz problem
-            return inner(density * u_tr, u_test) * dx
+            return fem.form(inner(density * u_tr, u_test) * dx)
         elif len(u_tr.ufl_shape) == 1:
             # Vector trial function; create elasticity problem
-            return inner(dot(density, u_tr), u_test) * dx
+            if len(density.ufl_shape) > 0:
+                return fem.form(inner(dot(density, u_tr), u_test) * dx)
+            else:
+                return fem.form(inner(density * u_tr, u_test) * dx)
         else:
             raise ValueError(f"Unsupported trial function shape: {u_tr.ufl_shape}")
     else:
@@ -217,7 +220,7 @@ def mass_form(
 
 
 def _stiffness_form_direct(
-    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: Constant
+    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: fem.Constant
 ):
     # Return the stiffness form for direct formulations
 
@@ -233,31 +236,74 @@ def _stiffness_form_indirect(
 
 
 def _stiffness_form_indirect_transformed(
-    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: Constant
+    u_tr: Argument, u_test: Argument, modulus: Coefficient, wave_vec: fem.Constant
 ):
     # Return the stiffness form for transformed indirect formulations
 
     if len(u_tr.ufl_shape) == 0:
         # Scalar trial function; create Helmholtz problem
         if ScalarType == np.complex128:
-            return (
-                (
-                    inner(dot(modulus, grad(u_tr)), grad(u_test))
-                    + inner(dot(wave_vec, dot(modulus, wave_vec)) * u_tr, u_test)
-                    - 1j * inner(u_tr * dot(modulus, wave_vec), grad(u_test))
-                    + 1j * inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
+            if len(modulus.ufl_shape) > 0:
+                # Tensor-valued modulus
+                return (
+                    fem.form(
+                        (
+                            inner(dot(modulus, grad(u_tr)), grad(u_test))
+                            + inner(
+                                dot(wave_vec, dot(modulus, wave_vec)) * u_tr, u_test
+                            )
+                            - 1j * inner(u_tr * dot(modulus, wave_vec), grad(u_test))
+                            + 1j * inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
+                        )
+                        * dx,
+                    ),
                 )
-                * dx,
-            )
+            else:
+                # Scalar-valued (isotropic) modulus
+                return (
+                    fem.form(
+                        (
+                            inner(modulus * grad(u_tr), grad(u_test))
+                            + inner(modulus * dot(wave_vec, wave_vec) * u_tr, u_test)
+                            - 1j * inner(modulus * u_tr * wave_vec, grad(u_test))
+                            + 1j * inner(modulus * grad(u_tr), wave_vec * u_test)
+                        )
+                        * dx,
+                    ),
+                )
         else:
-            real_form = (
-                inner(dot(modulus, grad(u_tr)), grad(u_test))
-                + inner(u_tr * dot(wave_vec, modulus), wave_vec * u_test)
-            ) * dx
-            imag_form = (
-                inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
-                - inner(u_tr * dot(modulus, wave_vec), grad(u_test))
-            ) * dx
+            if len(modulus.ufl_shape) > 0:
+                # Tensor-valued modulus
+                real_form = fem.form(
+                    (
+                        inner(dot(modulus, grad(u_tr)), grad(u_test))
+                        + inner(u_tr * dot(wave_vec, modulus), wave_vec * u_test)
+                    )
+                    * dx
+                )
+                imag_form = fem.form(
+                    (
+                        inner(dot(modulus, grad(u_tr)), wave_vec * u_test)
+                        - inner(u_tr * dot(modulus, wave_vec), grad(u_test))
+                    )
+                    * dx
+                )
+            else:
+                # Scalar-valued (isotropic) modulus
+                real_form = fem.form(
+                    (
+                        inner(modulus * grad(u_tr), grad(u_test))
+                        + inner(modulus * u_tr * wave_vec, wave_vec * u_test)
+                    )
+                    * dx
+                )
+                imag_form = fem.form(
+                    (
+                        inner(modulus * grad(u_tr), wave_vec * u_test)
+                        - inner(modulus * u_tr * wave_vec, grad(u_test))
+                    )
+                    * dx
+                )
             return (real_form, imag_form)
     elif len(u_tr.ufl_shape) == 1:
         # Vector trial function; create elasticity problem

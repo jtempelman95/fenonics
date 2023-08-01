@@ -86,4 +86,3 @@ HS_labels = ['$\Gamma$', 'X', 'M',
 plt = fenonics.plotbands(np.array(evals_disp),figsize = (5,5), HSpts = HSpts, HS_labels = HS_labels, a_len = a_len,
                     KX = KX, KY = KY, inset = True)
 plt.show()
-

@@ -564,7 +564,7 @@ def solve_bands(
                     stiffness_form, mpc, bcs=bcs, diagval=1e6, A=K
                 )
                 if eigensolver is None:
-                    eigensolver = solver.get_EPS(K, M)
+                    eigensolver = solver.get_EPS(K, M, n_solutions)
                 else:
                     # TODO: this command may be unnecessary because we reuse K and M
                     eigensolver.setOperators(K, M)

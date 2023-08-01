@@ -42,7 +42,12 @@ from slepc4py import SLEPc
 # Functions
 
 
-def get_EPS(stiffness_matrix: PETSc.Mat, mass_matrix: PETSc.Mat, target: float = 0):
+def get_EPS(
+    stiffness_matrix: PETSc.Mat,
+    mass_matrix: PETSc.Mat,
+    n_solutions: int,
+    target: float = 0,
+):
     """Create and configure SLEPc eigensolver for band structure computations."""
 
     EPS = SLEPc.EPS()
@@ -50,7 +55,7 @@ def get_EPS(stiffness_matrix: PETSc.Mat, mass_matrix: PETSc.Mat, target: float =
     EPS.setOperators(stiffness_matrix, mass_matrix)
     EPS.setProblemType(SLEPc.EPS.ProblemType.GHEP)
 
-    EPS.setDimensions(nev=12)
+    EPS.setDimensions(nev=n_solutions)
 
     EPS.setType(SLEPc.EPS.Type.KRYLOVSCHUR)
 

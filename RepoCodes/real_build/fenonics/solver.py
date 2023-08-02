@@ -69,7 +69,7 @@ def get_EPS(
     ST.setShift(10)
 
     KSP = ST.getKSP()
-    KSP.setType(KSP.Type.NONE)
+    KSP.setType(KSP.Type.PREONLY)
     PC = KSP.getPC()
     PC.setType(PETSc.PC.Type.LU)
     PC.setFactorSolverType(PETSc.Mat.SolverType.MUMPS)

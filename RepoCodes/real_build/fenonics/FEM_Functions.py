@@ -85,7 +85,6 @@ from dolfinx.fem import form, Function, FunctionSpace
 from dolfinx.mesh import locate_entities_boundary
 from fenonics import problem
 from fenonics.problem import BlochProblemType
-from mpi4py import MPI
 from petsc4py import PETSc
 from petsc4py.PETSc import ScalarType
 from scipy import sparse
@@ -545,6 +544,7 @@ def solve_bands(
 
         # Loop to compute band structure
         print("Computing Band Structure... ")
+        min_n = n_solutions
         for k in range(len(HSpts) - 1):
             print(f"Computing {HSstr[k]} to {HSstr[k + 1]}")
             slope = np.array(HSpts[k + 1]) - np.array(HSpts[k])
@@ -578,7 +578,12 @@ def solve_bands(
                 eig_frq = np.sort(eig_frq)
                 evals_disp.append(eig_frq)
                 evecs_disp.append(eig_vec)
-        return evals_disp, evecs_disp, mpc, KX, KY
+                min_n = min(min_n, len(eig_val))
+        truncated_evals = []
+        truncated_evecs = []
+        for eig_val_list, eig_vec_list in zip(evals_disp, evecs_disp):
+            truncated_evals.append(eig_val_list[:min_n])
+            truncated_evecs.append(eig_vec_list[:min_n])
 
         t2 = time.time() - start
 
@@ -589,113 +594,4 @@ def solve_bands(
         print(f"N_wavenumbers... {n_wavevector}")
         print("Time to compute dispersion: {t2:.3f}s".format(t2=t2))
 
-
-########################################################################################
-#                                   Testing the code
-########################################################################################
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    from dolfinx.io.gmshio import model_to_mesh
-    import gmsh
-    from PostProcess import *
-    from MeshFunctions import get_mesh_SquareSpline
-
-    # Meshing parameters
-    cut = True
-    a_len = 0.1
-    r = np.array([1, 0.9, 0.3, 0.8, 0.6]) * a_len * 0.75
-    offset = 0 * np.pi / 4
-    design_vec = np.concatenate((r / a_len, [offset]))
-    Nquads = 5
-    da = a_len / 15
-    refinement_level = 4
-    refinement_dist = a_len / 10
-    meshalg = 6
-
-    # Make the mesh with Gmsh
-    gmsh.model, xpt, ypt = get_mesh_SquareSpline(
-        a_len,
-        da,
-        r,
-        Nquads,
-        offset,
-        meshalg,
-        refinement_level,
-        refinement_dist,
-        isrefined=True,
-        cut=cut,
-    )
-
-    # Import to dolfinx
-    mesh_comm = MPI.COMM_WORLD
-    model_rank = 0
-    mesh, ct, _ = model_to_mesh(gmsh.model, mesh_comm, model_rank, gdim=2)
-
-    # Plot the design vector and the produced mesh
-    plt = PlotSpline(gmsh, r, Nquads, a_len, xpt, ypt)
-    plt.show()
-    plotmesh(mesh, ct)
-
-    # Define material properties
-    if not cut:
-        c = [1500, 5100]  # if solid inclusion (mutlple materail model)
-        rho = [1e3, 7e3]  # if solid inclusion (mutlple materail model)
-    else:
-        c = [30]  # if void inclusion  (if iscut)
-        rho = [1.2]  # if void inclusion  (if iscut)
-
-    # Define the high symmetry points of the lattice
-    G = np.array([0, 0])
-    X = np.array([np.pi / a_len, 0])
-    M = np.array([np.pi / a_len, np.pi / a_len])
-    Y = np.array([0, np.pi / a_len])
-    Mp = np.array([-np.pi / a_len, np.pi / a_len])
-    Xp = np.array([-np.pi / a_len, 0])
-    HSpts = [G, X, M, G, Y, M, G, Xp, Mp, G, Y, Mp, G]
-
-    # Define the number of solutiosn per wavevec and number of wavevecs to solve for
-    n_solutions = 30
-    n_wavevector = len(HSpts) * 10
-
-    # Solve the dispersion problem
-    evals_disp, evec_all, mpc, KX, KY = solve_bands(
-        HSpts=HSpts,
-        n_wavevector=n_wavevector,
-        n_solutions=n_solutions,
-        a_len=a_len,
-        c=c,
-        rho=rho,
-        fspace="CG",
-        mesh=mesh,
-        ct=ct,
-    )
-
-    bgnrm, gapwidths, gaps, lowbounds, highbounds = getbands(np.array(evals_disp))
-    HS_labels = [
-        r"$\Gamma$",
-        "X",
-        "M",
-        r"$\Gamma$",
-        "Y",
-        "M",
-        r"$\Gamma$",
-        "X*",
-        "M*",
-        r"$\Gamma$",
-        "Y*",
-        "M*",
-        r"$\Gamma$",
-    ]
-
-    plt = plotbands(
-        np.array(evals_disp),
-        figsize=(5, 5),
-        HSpts=HSpts,
-        HS_labels=HS_labels,
-        a_len=a_len,
-        KX=KX,
-        KY=KY,
-        inset=True,
-    )
-    plt.show()
+        return truncated_evals, truncated_evecs, mpc, KX, KY

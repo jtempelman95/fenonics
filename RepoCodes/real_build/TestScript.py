@@ -87,3 +87,4 @@ plt = fenonics.plotbands(np.array(evals_disp),figsize = (5,5), HSpts = HSpts, HS
                     KX = KX, KY = KY, inset = True)
 plt.show()
 
+

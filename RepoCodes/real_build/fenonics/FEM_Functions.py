@@ -323,12 +323,11 @@ def solve_system(
     kx = fem.Constant(mesh, ScalarType(kx))
     ky = fem.Constant(mesh, ScalarType(ky))
     a_form_re = (
-        E**2
-        * (inner(grad(u_tr), grad(u_test)) + u_tr * u_test * (kx**2 + ky**2))
+        E*(inner(grad(u_tr), grad(u_test)) + u_tr * u_test * (kx**2 + ky**2))
         * dx
     )
     a_form_im = (
-        E**2 * (u_tr * inner(grad(u_test), K) - u_test * inner(grad(u_tr), K)) * dx
+        E * (u_tr * inner(grad(u_test), K) - u_test * inner(grad(u_tr), K)) * dx
     )
     a_re = form(a_form_re)
     a_im = form(a_form_im)

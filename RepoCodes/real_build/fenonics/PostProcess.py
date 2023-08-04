@@ -289,6 +289,20 @@ def plotbands(
 
 
 def PlotSpline(gmsh, r, Nquads, a_len, xpt, ypt):
+    '''Plotting the spline curve from the mesh
+    
+    parameters
+    ----------
+    gmsh - the gmsh object containg gmsh.mesh
+    r  - the design vector fed into get_mesh()
+    a_len - chareceterstic unit cell length
+    xpt - the x coordinates of the design vector
+    ypt - the y coordinates of the design vector
+    
+    output
+    --------
+    matplotlib.pyplot object containg spline plot
+    '''
     SplinePtDat, SplineDat = GetSpline(gmsh, a_len, xpt, ypt)
     x = SplinePtDat[:, 0]
     y = SplinePtDat[:, 1]
@@ -380,7 +394,17 @@ def plot_splines(splines, targets, nrow=6, ncol=6, is_rand=True):
 
 
 def plotmesh(mesh, ct):
-    """ " Plotting the mesh written by Gmsh"""
+    """ Plotting the mesh written by Gmsh
+
+    parameters
+    ---------
+    mesh  - a gmsh.mesh object containting mesh info
+    ct    - cell tegas
+    
+    output
+    -------
+    plotter - a pyvista.plotter object containing the mesh plot
+    """
 
     V = dolfinx.fem.FunctionSpace(mesh, ("CG", 1))
     v = dolfinx.fem.Function(V)

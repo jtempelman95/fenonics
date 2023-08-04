@@ -51,7 +51,7 @@ import numpy as np
 # Functions
 
 
-def get_mesh_SquareSpline(
+def get_mesh(
     a: float = 1.0,
     da: float = None,
     r: np.array = None,

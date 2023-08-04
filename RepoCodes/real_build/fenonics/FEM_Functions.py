@@ -72,7 +72,7 @@
 
 """
 
-
+#%%
 # General
 import numpy as np
 import time
@@ -289,6 +289,29 @@ def petsc_to_csr_complex(*args):
     else:
         return sparse.csr_matrix((av + 0j * av, aj, ai))
 
+def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
+    """Get the complex valued mass matrix
+
+    parameters
+    ----------
+        u_tr - trial function
+        u_test - test function
+        Rho - Array of densities on mesh coords
+        mpc - multi-point periodic constraint
+        bcs - Dirichlet BCs
+
+    returns
+    -------
+        Complex valued mass matrix is scipy csr format
+    """
+
+    m_form = Rho * dot(u_tr, u_test) * dx
+    m = form(m_form)
+    diagval_B = 1e-2
+    B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
+    B.assemble()
+    return petsc_to_csr_complex(B)
+
 
 def solve_system(
     kx: float,
@@ -395,29 +418,6 @@ def assign_mat_props(
         E.interpolate(lambda x: np.full((x.shape[1],), c_i**2 * rho_i), cells=cells)
     return E, Rho
 
-
-def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
-    """Get the complex valued mass matrix
-
-    parameters
-    ----------
-        u_tr - trial function
-        u_test - test function
-        Rho - Array of densities on mesh coords
-        mpc - multi-point periodic constraint
-        bcs - Dirichlet BCs
-
-    returns
-    -------
-        Complex valued mass matrix is scipy csr format
-    """
-
-    m_form = Rho * dot(u_tr, u_test) * dx
-    m = form(m_form)
-    diagval_B = 1e-2
-    B = dolfinx_mpc.assemble_matrix(m, mpc, bcs=bcs, diagval=diagval_B)
-    B.assemble()
-    return petsc_to_csr_complex(B)
 
 
 def solve_bands(

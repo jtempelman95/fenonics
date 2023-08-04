@@ -42,6 +42,6 @@ PostProcess - post-process and plot band structures
 
 # Imports
 
-# from .FEM_Functions import *
-# from .PostProcess import *
-# from .MeshFunctions import *
+from .FEM_Functions import *
+from .PostProcess import *
+from .MeshFunctions import *

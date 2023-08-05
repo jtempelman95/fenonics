@@ -26,4 +26,10 @@ $$ \begin{align} &u(0,y) = u(a,y)e^{i k_xa} \ \ \text{on} \ 0 < y < a \\
 &u(x,0) = u(x,a)e^{i k_ya} \ \ \text{on} \ 0 < x < a\end{align}
 $$
 
-## Details on solution formulation
+## Brief summary of workflow
+
+1. The `gmsh-api` module generates a mesh parameterized by an internal void geometry
+2. `dolfinx` builds a function space on the mesh based on a Bloch-ansatz weak form
+4. `dolfinx-mpc`applies the necessary periodc BCs and returns the mass and stiffness matrices
+5. `scipy` solves the complex eigenproblem at a given wavenumber
+6. `fenonics` packages all the operations to conviently solve over an IBZ, post-process solutions, and visualization results

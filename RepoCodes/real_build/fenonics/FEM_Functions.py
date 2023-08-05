@@ -312,7 +312,6 @@ def mass_matrix_complex(u_tr, u_test, Rho, mpc, bcs):
     B.assemble()
     return petsc_to_csr_complex(B)
 
-
 def solve_system(
     kx: float,
     ky: float,

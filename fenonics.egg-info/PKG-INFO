@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: fenonics
+Version: 0.1
+Summary: solving dispresion with fenicsx
+Home-page: https://github.com/jtempelman95/fenonics
+Author: J Tempelman, C Pierce
+Author-email: flyingcircus@example.com
+License: MIT
+License-File: LICENSE.txt

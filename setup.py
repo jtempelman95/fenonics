@@ -9,5 +9,4 @@ setup(
     author='J Tempelman, C Pierce',
     author_email='flyingcircus@example.com',
     license='MIT',
-    packages==find_packages(),
-)
+    packages=find_packages())

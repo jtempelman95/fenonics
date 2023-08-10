@@ -1,0 +1,14 @@
+LICENSE.txt
+README.md
+setup.py
+fenonics/FEM_Functions.py
+fenonics/HelperFunctions.py
+fenonics/MeshFunctions.py
+fenonics/PostProcess.py
+fenonics/__init__.py
+fenonics/problem.py
+fenonics/solver.py
+fenonics.egg-info/PKG-INFO
+fenonics.egg-info/SOURCES.txt
+fenonics.egg-info/dependency_links.txt
+fenonics.egg-info/top_level.txt

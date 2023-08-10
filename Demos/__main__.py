@@ -29,7 +29,6 @@
 # SOFTWARE.
 #%%
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 from dolfinx.io.gmshio import model_to_mesh

@@ -39,7 +39,7 @@ from fenonics.MeshFunctions import get_mesh
 from mpi4py import MPI
 
 # Meshing parameters
-cut = True
+cut = False
 a_len = 0.1
 r = np.array([1, 0.9, 0.3, 0.8, 0.6]) * a_len * 0.75
 offset = 0 * np.pi / 4

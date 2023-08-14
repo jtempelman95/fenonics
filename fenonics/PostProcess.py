@@ -413,11 +413,10 @@ def plotmesh(mesh, ct):
     num_local_cells = mesh.topology.index_map(mesh.topology.dim).size_local
     grid.cell_data["Marker"] = 1 - ct.values[ct.indices < num_local_cells]
     grid.set_active_scalars("Marker")
-    actor = plotter.add_mesh(grid, show_edges=True, line_width=1, edge_color="w")
+    plotter.add_mesh(grid, show_edges=True, line_width=1, edge_color="w")
     # actor = plotter.add_mesh(grid, style="wireframe", color= 'w', line_width=3)
     plotter.set_background("black", top="black")
     plotter.view_xy()
-    plotter.screenshot("Mesh.jpeg", window_size=[2000, 1400])
     plotter.add_title(
         "CELLS:" + str(ct.values.shape[0]) + "  | NODES:" + str(v.vector[:].shape[0])
     )
